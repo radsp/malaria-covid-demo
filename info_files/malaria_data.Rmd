@@ -1,0 +1,14 @@
+---
+title: "Malaria Data"
+output: html_document
+---
+
+<br/>
+<br/>
+
+Malaria indicators are obtained from the submitted quarterly report ......
+
+<br/>
+<br/>
+
+Describe any calculations/imputations in here (i.e. use the reporting rate to adjust for the count, replace the anomalous spike in Nigeria, etc...)

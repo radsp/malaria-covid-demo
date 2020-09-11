@@ -1,0 +1,24 @@
+---
+title: "COVID-19 Data"
+output: html_document
+---
+
+
+# COVID-19 Data and Indicators
+<br/>
+
+National-level COVID-19 cases and deaths are obtained from the [Johns Hopkins University](https://coronavirus.jhu.edu/map.html) and [Our World in Data](https://ourworldindata.org/coronavirus). Subnational COVID-19 data are obtained from UN OCHA Humanitarian Data Exchange ([HDX](https://data.humdata.org/event/covid-19)). COVID-19 forecasts are retrieved from the Imperial College London ([MRC Centre for Global Infectious Disease Analysis](https://mrc-ide.github.io/global-lmic-reports/))
+
+
+
+<br/>
+<br/>
+
+| Data                                               | Source                                                                  | Native resolution               | Update frequency | Desired indicator                                                                                                                                    |
+|----------------------------------------------------|-------------------------------------------------------------------------|:-------------------------------:|:----------------:|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Population (2020 or 2019)                          | [WorldPop](https://www.worldpop.org/geodata/summary?id=24798)                                                                | 1 km                            | Annual           | Percentage of population at specific age cohort                                                                                                      |
+| Population density                                 | Provincial shapefiles + [WorldPop](https://www.worldpop.org/geodata/summary?id=24798)                                        | Mixed                           | N/A              | Calculate total population (from worldpop) per area (from shapefile)                                                                                 |
+| Population mobility                                | [Google mobility](https://www.google.com/covid19/mobility/)                                                         | Admin 1 level & daily           | Monthly       | Change in mobility from baseline for each category                                                |
+| Handwashing                                        | [DHS program](https://api.dhsprogram.com/#/index.html), [raw data](https://dhsprogram.com/data/) (request permissions)  | Admin 1 level                   | N/A              | <ul><li>Percent of population living in households with soap and water</li><li>Percent of population living in households where place for washing hands was observed</li></ul>	 |
+| Health workforce                                  | PMI Quarterly Report                                                   | Admin 2 level & annual | Annual  | Density of health workers per 10,000 population from the last month available                                |
+| New consultations (all cause) per 1,000 population | PMI Quarterly Report                                                    | Admin 2 level & monthly         | Quarterly        | The number of outpatient consultations for any reason that were reported in the district in the HMIS per 1,000 population                            |

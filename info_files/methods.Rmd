@@ -1,0 +1,15 @@
+---
+title: "Methods"
+output: html_document
+---
+
+<br/>
+
+### Malaria Indicators Forecasts/Projections
+<br/>
+Add description here .....
+
+
+### COVID-19 Areas At Risk Ranking
+<br/>
+Add description here .....

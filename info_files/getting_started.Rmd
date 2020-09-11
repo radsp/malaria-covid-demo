@@ -1,0 +1,35 @@
+---
+title: "Getting Started"
+output: 
+  html_document:
+---
+
+<b>
+# About
+<b/>
+<br/>
+
+Population-level and health systems data is a powerful resource for understanding how viruses are spreading and which communities are at risk. However, interpreting that information is challenging.  Health authorities from some of the PMI focus countries have already developed their own dashboards, the **COVID-19 and Malaria Monitoring and Vulnerability Tool in M-DIVE** offers a means for PMI and national malaria control programs to visualize existing data in an integrated way to inform high level COVID-19 and malaria related **questions** such as:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*To what extent are changes to treatment-seeking patterns or intervention campaigns (or both) are having an effect on malaria burden?*
+
+
+## Objective
+<br/>
+M-DIVE’s COVID-19 and Malaria Monitoring and Vulnerability Tool provides information on malaria and COVID-19 indicators - including observed and forecast data - intended to support the following objectives:
+
+1. Lay a foundation for tracking the impact of COVID-19 on key malaria related indicators
+2. Identify subnational geographic areas that are more vulnerable to COVID transmission and health system overload
+
+
+## Limitations
+<br/>
+The dashboards can provide **insights** but are **not meant to empirically answer** key analytical questions related to the impact of COVID-19 and vulnerability of subnational levels. There are many know limitations, including:
+
+* *Data availability*: The dashboards only include districts, and subnational levels within countries, **where sufficient data is available**. Although efforts are underway to add other datasets overtime (based on availability), these dashboards **do not address additional factors** such as international travel patterns, poverty, mitigation measures, availability of essential medicines and equipment. 
+
+* *Contextualization*: These dashboards are **not meant for cross-country/Africa-wide comparisons**. Each country needs to be analyzed separately, based on country specific factors and context. Appropriate analytical interpretation can only be performed by users who have an adequate level of understanding of these country-specific factors and context, and in conjunction with other data sources for effective decision-making.
+
+* *COVID-19 testing variations*: There is significant variation in COVID-19 testing practices – in terms of **how many tests** are conducted, **how they are allocated** across the population, **positivity rate** of specimens tested – across regions and these practices have also changed over time.
+
+* *Data quality*: For routine surveillance and service delivery data, the dashboards use data aggregated at the district level which can present a number of problems if suboptimal reporting quality from **specific facilities within a district can negatively affect accuracy** for the entire district. Also, the more recent data (data from the latest round of PMI quarterly reporting) will typically have **lower reporting rates** due to delayed reporting by some facilities and districts.
