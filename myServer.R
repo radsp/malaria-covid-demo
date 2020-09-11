@@ -266,7 +266,7 @@ server <- function(input, output, session){
       
       ggplotly(g1, # tooltip = "text", 
                width = (0.75 * as.numeric(input$dimension[1])),
-               height = as.numeric(0.8*input$dimension[2])
+               height = as.numeric(0.7*input$dimension[2])
                )
       
       
