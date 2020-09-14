@@ -3,15 +3,15 @@
 #   filter()
 #   mutate(combogroup = factor(combogroup, levels = c("2020", "Other Years", "Historical Mean", "COVID-19", "COVID-19 Forecast", "Report Rate")))
 
-xx0 <- read_civis(120454693, using = readRDS)
+# xx0 <- read_civis(120454693, using = readRDS)
 
-xctry <- xx0$xctry
-xprov <- xx0$xprov
-xrf_adm0 <- xx0$xrf_adm0
-xrf_adm1 <- xx0$xrf_adm1
-wpop_adm1 <- xx0$wpop_adm1
-wpop_adm0 <- xx0$wpop_adm0
-rm(xx0)
+# xctry <- xx0$xctry
+# xprov <- xx0$xprov
+# xrf_adm0 <- xx0$xrf_adm0
+# xrf_adm1 <- xx0$xrf_adm1
+# wpop_adm1 <- xx0$wpop_adm1
+# wpop_adm0 <- xx0$wpop_adm0
+# rm(xx0)
 
 nctry <- length(unique(xctry$country))
 
