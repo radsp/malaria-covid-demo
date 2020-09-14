@@ -695,7 +695,7 @@ xprov <- ts_mal_adm1
 xrf_adm0 <- subset(xrf, admin_level_1 %in% "")
 xrf_adm1 <- subset(xrf, admin_level_1 %in% "")
 
-rm(list = setdiff(ls(), c("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xvul0", "wpop_adm0", "wpop_adm1", lsf.str()))
+rm(list = setdiff(ls(), c("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xvul0", "wpop_adm0", "wpop_adm1", lsf.str())))
 
 # save("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xvul0", "wpop_adm0", "wpop_adm1",
 #      file = "appdata.RData")
