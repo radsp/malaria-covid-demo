@@ -435,7 +435,7 @@ server <- function(input, output, session){
           # geom_text(data = dat_adm0$delta, aes(x = 11, y = 0, label = delta_text, hjust = 1, vjust = -1, text = text_hover), size = 6, colour = "grey20", alpha = 0.75) +
           xlab("") + 
           ylab(dat_adm1$ylabel) +
-          ggtitle(as.character(input$in_indicator_mal_adm1)) +
+          ggtitle(paste(dat_adm1$dat$country[1], " - ", as.character(input$in_indicator_mal_adm1), sep = "")) +
           scale_x_continuous(breaks = seq(from = 1, to = 12, by = 2), labels = month.abb[seq(from = 1, to = 12, by = 2)]) +
           theme_few(12) +
           scale_alpha_manual("", values = alpha_values, drop = FALSE) +
