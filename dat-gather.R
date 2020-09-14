@@ -3,7 +3,18 @@
 ## Libraries ------------------------------------------------------
 
 library(civis)
-library(ggplot2)
+# library(ggplot2)
+
+if(!require(dplyr)){
+  install.packages("dplyr")
+  }
+if(!require(tidyverse)){
+  install.packages("tidyverse")
+  }
+if(!require(scales)){
+  install.packages("scales")
+  }
+
 library(dplyr)
 library(tidyverse)
 library(scales)
