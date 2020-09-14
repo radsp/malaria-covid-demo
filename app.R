@@ -51,7 +51,7 @@ library(rmarkdown)
 
 
 source('util.R')
-# source('dat-gather.R')
+source('dat-gather.R')
 source('global.R')
 source("styling.R")
 source("constant.R")
