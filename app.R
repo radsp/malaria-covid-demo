@@ -26,24 +26,25 @@ library(shinyjs)
 library(shinyWidgets)
 library(tidyr)
 library(shinydashboard)
+library(civis)
+library(ggplot2)
+library(dplyr)
 
-# Packages that are not in the platform
 
+# Packages that (may) not in the platform
 
-if(!require(ggthemes)){
-  install.packages("ggthemes")
+pckg_list <- c("ggthemes", "tidyverse", "plotly", "rmarkdown",
+               "scales", "rmarkdown")
+
+for (i in pckg_list) {
+  if (!(require(i, character.only = TRUE))) {
+    install.packages(i)
+    library(i)
+  }
 }
 
-if(!require(plotly)){
-  install.packages("plotly")
-}
 
-if(!require(rmarkdown)){
-  install.packages("rmarkdown")
-}
 
-library(ggthemes)
-library(rmarkdown)
 
 ## -----------------------------------------------------------------
 # Sources

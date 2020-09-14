@@ -4,7 +4,7 @@ get_delta <- function(yr0, m0, mf, dat){
   m0 <- which(month.abb %in% m0)
   mf <- which(month.abb %in% mf)
   
-  if(yr0 %in% "Long-term mean"){
+  if(yr0 %in% "Historical mean"){
     yr0 <- NULL
     ltm_data <- TRUE
   } else {
@@ -17,14 +17,14 @@ get_delta <- function(yr0, m0, mf, dat){
     dat_delta <- dat %>% 
       filter( (year %in% c(2020, yr0) & (month %in% c(m0, mf)) &
                  !(colourgroup %in% c("covid")) ) ) %>%
-      mutate(year = ifelse(linegroup %in% "Long-term mean", 2019, year),
+      mutate(year = ifelse(linegroup %in% "Historical mean", 2019, year),
              variable = gsub("_ltm", "", variable))
     
   } else {
     
     dat_delta <- dat %>% 
       filter( (year %in% c(2020, yr0) & (month %in% c(m0, mf)) &
-                 !(colourgroup %in% c("covid")) & !(linegroup %in% "Long-term mean") ) )
+                 !(colourgroup %in% c("covid")) & !(linegroup %in% "Historical-term mean") ) )
   }
   
 
@@ -32,7 +32,7 @@ get_delta <- function(yr0, m0, mf, dat){
     group_by(country, year, boxgroup, variable) %>%
     summarise(value = if_else(all(is.na(value)), NA_real_, sum(value, na.rm = TRUE))) %>%
     ungroup() %>%
-    mutate(year = if_else(as.character(year) %in% c("Long-term mean", "2020"), as.character(year), "0")) %>%
+    mutate(year = if_else(as.character(year) %in% c("Historical mean", "2020"), as.character(year), "0")) %>%
     pivot_wider(names_from = "year", values_from = value, names_prefix = "y") 
   
   if( !("y2020" %in% colnames(dat_tmp))){
@@ -61,15 +61,19 @@ get_ribbon_data <- function(m0, mf, yf, dat){
   m0 <- which(month.abb %in% m0)
   mf <- which(month.abb %in% mf)
   
+  dat <- dat %>% filter(stringr::str_detect(variable, "report", negate = TRUE))
+  
+
+  
   dfrbn1 <- subset(dat, (date >= as.Date(paste(2020, "-", m0, "-01", sep = ""))) & 
                      (date <= as.Date(paste(2020, "-", mf, "-01", sep = ""))) ) %>%
     filter((stringr::str_detect(variable, "ltm", negate = TRUE)))
   
-  if (nrow(dfrbn1) == 0){
+  if ( nrow(dfrbn1) == 0){
     dfrbn <- dat %>%
       mutate(minval = NA, maxval = NA)
   } else {
-    if(yf == "Long-term mean"){
+    if(yf == "Historical mean"){
       dfrbn2 <- dat %>% filter(stringr::str_detect(variable, "ltm"))
     } else {
       dfrbn2 <- dat %>% filter( (year == as.numeric(yf)) & (stringr::str_detect(variable, "ltm", negate = TRUE)) )

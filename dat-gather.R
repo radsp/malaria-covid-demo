@@ -2,22 +2,7 @@
 
 ## Libraries ------------------------------------------------------
 
-library(civis)
-# library(ggplot2)
 
-if(!require(dplyr)){
-  install.packages("dplyr")
-  }
-if(!require(tidyverse)){
-  install.packages("tidyverse")
-  }
-if(!require(scales)){
-  install.packages("scales")
-  }
-
-library(dplyr)
-library(tidyverse)
-library(scales)
 
 ## FUNCTIONS ------------------------------------------------------
 
@@ -674,29 +659,34 @@ xrf <- bind_rows(xrf_tmp1, mal4rf) %>%
   filter((!is.na(year_ssn)) & !(combogroup %in% "Unknown"))
 
 
-# dat1 <- xrf %>%
-#   filter((variable %in% "confirmed_cases") & (count_type %in% "value_rate")) %>%
-#   filter(year %in% c(2019, 2020)) %>%
-#   filter(rf_type %in% "monthly")
-# dat <- xrf %>%
-#   filter((rf_type %in% "monthly") & (count_type %in% "value_rf")) %>%
-#   bind_rows(., dat1) %>%
-#   filter(admin_level_1 == "")
-# 
-# ggplot(dat, aes(x = month, y = value, colour = combogroup,  
-#                 group = interaction(year, combogroup))) + 
-#   geom_line() +
-#   facet_wrap(~ country, scales = "free")
-  
-
 xctry <- ts_mal_adm0
 xprov <- ts_mal_adm1
 
 xrf_adm0 <- subset(xrf, admin_level_1 %in% "")
-xrf_adm1 <- subset(xrf, admin_level_1 %in% "")
+xrf_adm1 <- subset(xrf, !(admin_level_1 %in% ""))
 
-rm(list = setdiff(ls(), c("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xvul0", "wpop_adm0", "wpop_adm1", lsf.str())))
 
-# save("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xvul0", "wpop_adm0", "wpop_adm1",
-#      file = "appdata.RData")
+xctry <- xctry %>%
+  mutate(info_txt = case_when(stringr::str_detect(variable, "ltm") ~ "Historical Mean",
+                              stringr::str_detect(variable, "reports") ~ paste("Report Rate (2020): ", info, sep = ""),
+                              stringr::str_detect(variable, "fcst") ~ paste("COVID-19 Forecast;\nScenario: ", info, sep = ""),
+                              stringr::str_detect(variable, "covid_cases") ~ "COVID-19 Cases",
+                              stringr::str_detect(variable, "covid_deaths") ~ "COVID-19 Deaths", 
+                              TRUE ~ as.character(year)))
+
+xprov <- xprov %>%
+  mutate(info_txt = case_when(stringr::str_detect(variable, "ltm") ~ "Historical Mean",
+                              stringr::str_detect(variable, "reports") ~ paste("Report Rate (2020): ", info, sep = ""),
+                              stringr::str_detect(variable, "fcst") ~ paste("COVID-19 Forecast;\nScenario: ", info, sep = ""),
+                              stringr::str_detect(variable, "covid_cases") ~ "COVID-19 Cases",
+                              stringr::str_detect(variable, "covid_deaths") ~ "COVID-19 Deaths", 
+                              TRUE ~ as.character(year)))
+
+
+
+rm(list = setdiff(ls(), c("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xrf","xvul0", "wpop_adm0", "wpop_adm1",
+                          lsf.str())))
+
+# save("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xrf","xvul0", "wpop_adm0", "wpop_adm1",
+#       file = "appdata.RData")
 
