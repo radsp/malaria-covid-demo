@@ -76,3 +76,16 @@ indicator_labels <- setNames(c("All Cause Consultations", "Tested Cases", "Malar
 
 # Current month 
 mo_now <- as.numeric(format(Sys.Date(), "%m"))
+
+
+# Google mobility data
+xmob <- xvul0 %>% select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", ends_with("baseline"))) %>%
+  filter( (admin_level_2 == "") & (!is.na(day)) ) %>%
+  select(-admin_level_2) %>%
+  select(-c("day", "date")) %>%
+  group_by(country, admin_level_1, year, month) %>%
+  summarise_all(mean, na.rm = TRUE) %>%
+  mutate(date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
+  relocate(date, .before = "year") %>%
+  setNames(gsub("_percent_change_from_baseline", "", names(.))) %>%
+  mutate(country = factor(country, levels = as.character(unique(country))))
