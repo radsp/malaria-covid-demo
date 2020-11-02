@@ -5,156 +5,233 @@
 
 tab_malaria <- 
   navbarMenu("Malaria Impact", 
-             tabPanel("National Level",
-                      
-                      fluidPage(theme = "bootstrap_simplex.css",
-                        
-                        tags$head(tags$script('
-                        var dimension = [0, 0];
-                        $(document).on("shiny:connected", function(e) {
-                        dimension[0] = window.innerWidth;
-                        dimension[1] = window.innerHeight;
-                        Shiny.onInputChange("dimension", dimension);
-                        });
-                        $(window).resize(function(e) {
-                        dimension[0] = window.innerWidth;
-                        dimension[1] = window.innerHeight;
-                        Shiny.onInputChange("dimension", dimension);
-                        });
-                        ')),
-                        
-                        # tags$style(type = "text/css", "#out_plot_mal_adm0 {height: calc(100vh - 150px) !important;}"),
-                        
-                        
-                        useShinyjs(),
-                        
-                        # fluidRow(
-                          # # column(2, HTML("<B>Malaria Tracker: National Level</B>")),
-                          # column(8, p(HTML("KEY ANALYTICAL QUESTIONS:")),
-                          #         tags$ol(
-                          #           tags$li("How do malaria indicators reported in 2020 - during COVID-19 pandemic - appear to compare to previous years and/or historical mean?"),
-                          #           tags$li("By how much do the indicators in 2020 exceed or below the level of previous years?"),
-                          #           tags$li("Do any changes in malaria indicators coincide with COVID19 dynamics?"),
-                          #           tags$li("What is the forecasted COVID-19 trajectory and how does the timing potentially coincide with malaria season?")
-                          #         )
-                          #  
-                          # ),
-                          # column(2)
-                        # ),
-                        
-                        br(),
-                        actionButton(inputId = "toggle_side_mal_adm0", label = "  Selector", icon = icon("angle-double-down"), 
-                                     style = "color: #000000; background: #fcfcfc; border: #fcfcfc"),
-                        br(),
-                        sidebarLayout(
-                          div(id = "sidebar_mal_adm0", 
-                              sidebarPanel(width = 2,
-                                           h5(HTML("<b>Plot Options</b>")), 
-                                           br(),
-                                           selectInput(inputId = "in_plot_type_mal_adm0", label = "View plots by:",
-                                                       choices = c("Country", "Indicator"), selected = "Country"),
-                                           uiOutput(outputId = "out_filter_l2_mal_adm0"),
-                                           uiOutput(outputId = "out_filter_l3_mal_adm0" ),
-                                           prettyRadioButtons(inputId = "in_yaxs_mal_adm0",
-                                                              label = HTML("Y-Axis:"), choices = c("Cases per 1000 population" = "rate", "Cases" = "count"),
-                                                              inline = FALSE, status = "default"),
-                                           prettyRadioButtons(inputId = "in_radio_include_adm0", label = HTML("Include:"),
-                                                      choices = c("COVID-19 Forecasts", "Reporting Rate", "None"), inline = FALSE,
-                                                      fill = FALSE, status = "default", selected = "None"),
-                                           hr(),
-                                           h5(HTML("<b>Calculate 2020 Data Difference</b>")),
-                                           br(),
-                                           selectInput(inputId = "in_yr0_mal_adm0", label = "Select year to compare:", choices = c(rev(2016:2019), "Historical mean"), 
-                                                       selected = "Historical mean"),
-                                           fluidRow(column(6,
-                                                           selectInput(inputId = "in_yr0m0_mal_adm0", label = "Start Month:", choices = month.abb, selected = "Jan")),
-                                                    column(6,
-                                                           selectInput(inputId = "in_yr0mf_mal_adm0", label = "End Month:", choices = month.abb, selected = "Mar")))
-                                           )),
-                           mainPanel(setBackgroundColor("white"),
-                                     fluidRow(
-                                       # column(2, HTML("<B>Malaria Impact: National Level</B>")),
-                                       column(10, p(HTML("KEY ANALYTICAL QUESTIONS:")),
-                                              tags$ol(
-                                                tags$li("How do malaria indicators reported in 2020 - during COVID-19 pandemic - appear to compare to previous years and/or historical mean?"),
-                                                tags$li("By how much do the indicators in 2020 exceed or below the level of previous years?"),
-                                                tags$li("Do any changes in malaria indicators coincide with COVID19 dynamics?"),
-                                                tags$li("What is the forecasted COVID-19 trajectory and how does the timing potentially coincide with malaria season?")
-                                              )
-                                              
-                                       )
-                                     ),
-                                     # fluidRow(
-                                     #   column(6),
-                                     #   column(3,
-                                     #          prettyRadioButtons(inputId = "in_yaxs_mal_adm0",
-                                     #                               label = HTML("<b>Y-Axis:</b>"), choices = c("Cases per 1000 population" = "rate", "Cases" = "count"),
-                                     #                             inline = TRUE, status = "default")),
-                                     #   column(3, 
-                                     #          prettyRadioButtons(inputId = "in_radio_include_adm0", label = HTML("<b>Include:</b>"), 
-                                     #            choices = c("COVID-19 Forecasts", "Reporting Rate", "None"), inline = TRUE, 
-                                     #            fill = FALSE, status = "default",
-                                     #          ))
-                                     #   ),
-                                    fluidRow(plotlyOutput("out_plot_mal_adm0", width = "auto")))
+             tabPanel("Snapshot",
+                      useShinyjs(),
+                      br(),
+                      sidebarLayout(
+                        sidebarPanel(width = 2, 
+                                     selectInput(inputId = "in_region_snapshot", label = "Region/Country:",
+                                                 choices = c("All Countries", "Northern Hemisphere", 
+                                                             "Southern Hemisphere", "Western Africa", 
+                                                             "Eastern Africa", "Central/Southern Africa",  
+                                                             "Southeast Asia", "----------------------",
+                                                             as.character((unique(xctry$country)))),
+                                                 selected = "All Countries"),
+                                     selectInput(inputId = "in_indicator_snapshot", label = "Select indicator to map:",
+                                                 choices = c("All Cause Consultations" = "allcause_cases", 
+                                                             "Tested Cases" = "tested_cases", 
+                                                             "Malaria Confirmed Cases" = "confirmed_cases",
+                                                             "Test Positivity Rate" = "tpr", 
+                                                             "Malaria Severe Cases" = "severe_cases", 
+                                                             "Malaria Deaths" = "malaria_deaths", 
+                                                             "ANC (1st) Visit" = "anc1_visit"), 
+                                                 selected = "allcause_cases"),
+                                     prettyRadioButtons(inputId = "in_yaxs_snap",
+                                                        label = HTML("Indicator Unit:"), choices = c("Cases per 1K people" = "value_rate", "Cases" = "value"),
+                                                        inline = FALSE, status = "default"),
+                                     hr(),
+                                     h5(HTML("Baseline Period for Comparison")),
+                                     br(),
+                                     selectInput(inputId = "in_yr0_snap", label = "Select Year or Historical Mean:", choices = c(rev(2016:2019), "Historical mean"), 
+                                                 selected = "2019"),
+                                     fluidRow(column(6,
+                                                     selectInput(inputId = "in_yr0m0_snap", label = "Start Month:", choices = month.abb, selected = "Jan")),
+                                              column(6,
+                                                     selectInput(inputId = "in_yr0mf_snap", label = "End Month:", choices = month.abb, selected = "Mar")))
+                        ),
+                        mainPanel(width = 10, setBackgroundColor("white"),
+                          uiOutput(outputId = "out_snapshot_panel")
                         ))),
              
+             tabPanel("Changes In Indicator",
+                      tags$style(type = "text/css", "#out_plot_pcnt {height: calc(100vh - 150px) !important;}"),
+                      br(),
+                      sidebarLayout(
+                        sidebarPanel(width = 2,
+                                     selectInput(inputId = "in_aggr_pcnt", label = "Spatial Aggregation", 
+                                                        choices = c("National Level" = "admin0", "Sub-National Level" = "admin1"),
+                                                        selected = "admin0"),
+                                     selectInput(inputId = "in_region_pcnt", label = "Region/Country", 
+                                                 choices = c("All Countries", "Northern Hemisphere", 
+                                                             "Southern Hemisphere", "Western Africa", 
+                                                             "Eastern Africa", "Central/Southern Africa",  
+                                                             "Southeast Asia", "----------------------",
+                                                             as.character((unique(xctry$country)))),
+                                                 selected = "All Countries"),
+                                     uiOutput("out_filter_adm1_pcnt"),
+                                     selectInput(inputId = "in_indicator_pcnt", label = "Indicator",
+                                                 choices = c("All Cause Consultations" = "allcause_cases", 
+                                                             "Tested Cases" = "tested_cases", 
+                                                             "Malaria Confirmed Cases" = "confirmed_cases",
+                                                             "Test Positivity Rate" = "tpr", 
+                                                             "Malaria Severe Cases" = "severe_cases", 
+                                                             "Malaria Deaths" = "malaria_deaths", 
+                                                             "ANC (1st) Visit" = "anc1_visit"),
+                                                 selected = "allcause_cases"),
+                                     prettyRadioButtons(inputId = "in_epiunit_pcnt",
+                                                        label = HTML("Indicator unit:"), choices = c("Cases per 1,000 population*" = "value_rate", "Cases" = "value"),
+                                                        inline = FALSE, status = "default", selected = "value_rate"),
+                                     prettyRadioButtons(inputId = "in_overlay_pcnt", label = HTML("Include:"),
+                                                        choices = c("Reporting Rate", "Mobility", "None"), inline = FALSE,
+                                                        fill = FALSE, status = "default", selected = "None"),
+                                     hr(),
+                                     h5(HTML("Baseline year for comparison")),
+                                     br(),
+                                     selectInput(inputId = "in_yr0_pcnt", label = "Select year to compare:", choices = c(rev(2016:2019), "Historical Mean"), 
+                                                 selected = "2019")
+                        ),
+                        mainPanel(
+                          fluidRow(style = 'padding-left:10px;',
+                                   column(10, 
+                                          "How do the changes in malaria indicators (as compared to the selected baseline) vary by month? Do any decreases/increases coincide with COVID-19 dynamics?")),
+                          br(),
+                          fluidRow(style = 'padding-left:30px;', htmlOutput("out_plottitle_pcnt")), 
+                          fluidRow(style = 'padding-left:10px;',
+                                   plotlyOutput("out_plot_pcnt", width = "auto"), setBackgroundColor("white")))
+                      )),
              
-             # Subnational panel --------------------------------------------------------------------------------
+             tabPanel("Historical time series",
+                      fluidPage( theme = "bootstrap_simplex.css",
+                                 
+                                 tags$head(tags$script('var dimension = [0, 0];$(document).on("shiny:connected", function(e) {
+                                      dimension[0] = window.innerWidth; dimension[1] = window.innerHeight; Shiny.onInputChange("dimension", dimension);});
+                                      $(window).resize(function(e) {dimension[0] = window.innerWidth; dimension[1] = window.innerHeight;
+                                      Shiny.onInputChange("dimension", dimension); });')),
+                                 
+                                 br(),
+                                 
+                                 sidebarLayout(
+                                   sidebarPanel(width = 2,
+                                                selectInput(inputId = "in_aggr_ts", label = "Spatial Aggregation", 
+                                                            choices = c("National Level" = "admin0", "Sub-National Level" = "admin1"),
+                                                            selected = "admin0"),
+                                                selectInput(inputId = "in_region_ts", label = "Region/Country", 
+                                                            choices = c("All Countries", "Northern Hemisphere", 
+                                                                        "Southern Hemisphere", "Western Africa", 
+                                                                        "Eastern Africa", "Central/Southern Africa",  
+                                                                        "Southeast Asia", "----------------------",
+                                                                        as.character((unique(xctry$country)))),
+                                                            selected = "All Countries"),
+                                                uiOutput("out_filter_adm1_ts"),
+                                                selectInput(inputId = "in_indicator_ts", label = "Indicator",
+                                                            choices = c("All Cause Consultations" = "allcause_cases", 
+                                                                        "Tested Cases" = "tested_cases", 
+                                                                        "Malaria Confirmed Cases" = "confirmed_cases",
+                                                                        "Test Positivity Rate" = "tpr", 
+                                                                        "Malaria Severe Cases" = "severe_cases", 
+                                                                        "Malaria Deaths" = "malaria_deaths", 
+                                                                        "ANC (1st) Visit" = "anc1_visit"),
+                                                            selected = "allcause_cases"),
+                                                prettyRadioButtons(inputId = "in_epiunit_ts",
+                                                                   label = HTML("Indicator unit:"), choices = c("Cases per 1K" = "value_rate", "Cases" = "value"),
+                                                                   inline = FALSE, status = "default", selected = "value_rate"),
+                                                prettyRadioButtons(inputId = "in_radio_include_ts", label = HTML("Include:"),
+                                                                   choices = c("COVID-19 Forecasts", "Reporting Rate", "None"), inline = FALSE,
+                                                                   fill = FALSE, status = "default", selected = "None"),
+                                                hr(),
+                                                h5(HTML("<b>Compare 2020 Data</b>")),
+                                                br(),
+                                                selectInput(inputId = "in_yr0_ts", label = "Select year to compare:", choices = c(rev(2016:2019), "Historical mean"), 
+                                                            selected = "Historical mean"),
+                                                fluidRow(column(6,
+                                                                selectInput(inputId = "in_yr0m0_ts", label = "Start Month:", choices = month.abb, selected = "Jan")),
+                                                         column(6,
+                                                                selectInput(inputId = "in_yr0mf_ts", label = "End Month:", choices = month.abb, selected = "Mar")))
+                                   ),
+                                   mainPanel( setBackgroundColor("white"),
+                                     fluidRow(
+                                         column(10, style = 'padding-left:10px;', p(HTML("KEY ANALYTICAL QUESTIONS:")),
+                                                tags$ol(
+                                                  tags$li("How do malaria indicators reported in 2020 - during COVID-19 pandemic - appear to compare to previous years and/or historical mean?"),
+                                                  tags$li("By how much do the indicators in 2020 exceed or below the level of previous years?"),
+                                                  tags$li("Do any changes in malaria indicators coincide with COVID19 dynamics?"),
+                                                  tags$li("What is the forecasted COVID-19 trajectory and how does the timing potentially coincide with malaria season?")))
+                                     ),
+                                     br(),
+                                     fluidRow(style = 'padding-left:10px;', plotlyOutput("out_plot_ts", width = "auto")))
+                                 )
+                                 
+                                 
+
+                        
+                      )
+               
+             ),
              
-             tabPanel("Sub-national Level",
+             
+             # Rainfall tab panel -------------------------------------------------------------------------------------
+             tabPanel("Rainfall", # theme = "bootstrap_simplex.css",
+                      
+                      tags$style(type = "text/css", "#out_rfplot_adm0 {height: calc(100vh - 150px) !important;}"),
+                      
                       fluidPage(
+                        
                         fluidRow(
-                          column(2, HTML("<B>Malaria Impact: Sub-national Level</B>")),
+                          column(2, p(HTML("<b>Rainfall: National Level</b>"))),
                           column(8, p(HTML("KEY ANALYTICAL QUESTIONS:")),
                                  tags$ol(
-                                   tags$li("How do malaria indicators in 2020 - during COVID-19 pandemic - compared to previous years and/or mean?"),
-                                   tags$li("By how much do the indicators in 2020 exceed or below the level of previous years?"),
-                                   tags$li("Do any changes in malaria indicators coincides (or lags) with COVID19 dynamics?"),
-                                   tags$li("For key malaria indicators, which geographic areas have seen changes this year compared to previous years and/or the historical mean?")
-                                 )),
-                          column(2)),
+                                   tags$li("Is 2020 rainfall below/above normal (or compared to last year level)?"),
+                                   tags$li("Are rainy seasons in 2020 starting earlier than normal (or 2019)"),
+                                   tags$li("Has any shift in rainfall pattern appeared to have been followed by changes in malaria indicators (between 2019 and 2020)")
+                                 ),
+                                 column(2))),
                         br(),
-                        actionButton(inputId = "toggle_side_mal_adm1", label = "  Selector", icon = icon("angle-double-down"), 
-                                     style = "color: #000000; background: #fcfcfc; border: #fcfcfc"),
-                        br(),
-                        sidebarLayout(
-                          div(id = "sidebar_mal_adm1", 
-                              sidebarPanel(width = 2,
-                                           h5(HTML("<b>Plot Options</b>")), 
-                                           br(),
-                                           selectInput(inputId = "in_country_mal_adm1", label = "Country:",
-                                                       choices = c(sort(as.character(unique(xctry$country)))),
-                                                       selected = (sort(as.character(unique(xctry$country))))[1]),
-                                           selectInput(inputId = "in_plot_type_mal_adm1", label = "View plots by:",
-                                                       choices = c("Admin. Level 1", "Indicator"), selected = "Admin. Level 1"),
-                                           uiOutput(outputId = "out_filter_l2_mal_adm1"),
-                                           uiOutput(outputId = "out_filter_l3_mal_adm1" ),
-                                           prettyRadioButtons(inputId = "in_yaxs_mal_adm1",
-                                                              label = HTML("Y-Axis:"), choices = c("Cases per 1000 population" = "rate", "Cases" = "count"),
-                                                              inline = FALSE, status = "default", selected = "rate"),
-                                           prettyRadioButtons(inputId = "in_radio_include_adm1", label = HTML("Include:"),
-                                                              choices = c("Reporting Rate", "None"), inline = FALSE,
-                                                              fill = FALSE, status = "default", selected = "None"),
-                                           hr(),
-                                           h5(HTML("<b>Calculate 2020 Data Difference</b>")),
-                                           br(),
-                                           selectInput(inputId = "in_yr0_mal_adm1", label = "Select year to compare:", choices = c(rev(2016:2019), "Historical mean"), selected = "Historical mean"),
-                                           fluidRow(column(6,
-                                                           selectInput(inputId = "in_yr0m0_mal_adm1", label = "Start Month:", choices = month.abb, selected = "Jan")),
-                                                    column(6,
-                                                           selectInput(inputId = "in_yr0mf_mal_adm1", label = "End Month:", choices = month.abb, selected = "Mar")))
-                              )),
-                          mainPanel(setBackgroundColor("white"),
-                                    fluidRow(plotlyOutput("out_plot_mal_adm1", width = "auto")))
-                        )))
+                        fluidRow(
+                          sidebarLayout(
+                            sidebarPanel(width = 2,
+                                         selectInput(inputId = "in_aggr_rf", label = "Spatial aggregation level:",
+                                                     choices = c("National Level" = "admin0", "Sub-National Level" = "admin1"),
+                                                     selected = "country"),
+                                         selectInput(inputId = "in_region_rf", label = "Region/Country:",
+                                                     choices = c("All Countries", "Northern Hemisphere", 
+                                                                 "Southern Hemisphere", "Western Africa", 
+                                                                 "Eastern Africa", "Central/Southern Africa",  
+                                                                 "Southeast Asia", "----------------------",
+                                                                 as.character((unique(xrf_adm0$country))))),
+                                         
+                                         prettyRadioButtons(inputId = "in_rftype_rf", label = "Display rainfall as:",
+                                                            choices = c("Monthly Total" = "monthly", 
+                                                                        "Cumulative (Jan-Dec)" = "acc_cy", 
+                                                                        "Cumulative (Aug-July) (S.Hemisphere)" = "acc_ssn"),
+                                                            selected = "monthly",
+                                                            inline = FALSE, status = "default"),
+                                         hr(),
+                                         h6(HTML("<b>Epidemiological Indicator</b>")),
+                                         br(),
+                                         selectInput(inputId = "in_indicator_rf_adm0", label = "Indicator:",
+                                                     choices = c("All Cause Consultations" = "allcause_cases", 
+                                                                 "Tested Cases" = "tested_cases", 
+                                                                 "Confirmed Cases" = "confirmed_cases",
+                                                                 "Test Positivity Rate" = "tpr", 
+                                                                 "Severe Cases" = "severe_cases", 
+                                                                 "Malaria Deaths" = "malaria_deaths", 
+                                                                 "ANC (1st) Visit" = "anc1_visit",
+                                                                 "---------------------" = NA,
+                                                                 "COVID-19 Cases" = "covid_cases", "COVID-19 Deaths" = "covid_deaths")),
+                                         # selectInput(inputId = "in_year_rf_adm0", label = "Year", 
+                                         #             choices = rev(2016:2020), selected = 2020),
+                                         prettyRadioButtons(inputId = "in_count_type",
+                                                            label = HTML("Display indicator as:"), 
+                                                            choices = c("Cases per 1000 population" = "value_rate", "Cases" = "value"),
+                                                            inline = FALSE, status = "default")
+                            ), # End of sidebarPanel - RF National
+                            mainPanel(width = 8, plotOutput("out_rfplot_adm0"))
+                          )
+                        )
+                        
+                        
+                      ) # End of fluid page - RF National
+                      
+                      
+             ) # End of tab Panel - RF National
+             
              )
 
 
 
 
 #--------------------------------------------------------------------------------------------------------------------------------
-# Define info tab
+# Define COVID tab
 #--------------------------------------------------------------------------------------------------------------------------------
 
 tab_covid <- navbarMenu("COVID-19 Vulnerability",
@@ -366,7 +443,7 @@ tab_info <- tabPanel("Info",
                               # hr()
                               
                               ),
-                       column(10, 
+                       column(8, 
                               uiOutput("out_info"))
                      )
                      
@@ -375,145 +452,7 @@ tab_info <- tabPanel("Info",
                      )
                        
 
-                     
-                     
-                     
-#--------------------------------------------------------------------------------------------------------------------------------
-# Define rainfall tab
-#--------------------------------------------------------------------------------------------------------------------------------
-
-
-tab_rf <- 
-  navbarMenu("Rainfall",
-             
-             tabPanel("National Level", # theme = "bootstrap_simplex.css",
-                      
-                      tags$style(type = "text/css", "#out_rfplot_adm0 {height: calc(100vh - 150px) !important;}"),
-                      
-                      fluidPage(
-                        
-                        fluidRow(
-                          column(2, p(HTML("<b>Rainfall: National Level</b>"))),
-                          column(8, p(HTML("KEY ANALYTICAL QUESTIONS:")),
-                                 tags$ol(
-                                   tags$li("Is 2020 rainfall below/above normal (or compared to last year level)?"),
-                                   tags$li("Are rainy seasons in 2020 starting earlier than normal (or 2019)"),
-                                   tags$li("Has any shift in rainfall pattern appeared to have been followed by changes in malaria indicators (between 2019 and 2020)")
-                                 ),
-                          column(2))),
-                        br(),
-                        fluidRow(
-                          sidebarLayout(
-                            sidebarPanel(width = 2,
-                                         selectInput(inputId = "in_aggr_rf", label = "Spatial aggregation level:",
-                                                     choices = c("National Level" = "admin0", "Sub-National Level" = "admin1"),
-                                                     selected = "country"),
-                                         selectInput(inputId = "in_region_rf", label = "Region/Country:",
-                                                     choices = c("All Countries", "Northern Hemisphere", 
-                                                                 "Southern Hemisphere", "Western Africa", 
-                                                                 "Eastern Africa", "Central/Southern Africa",  
-                                                                 "Southeast Asia", "----------------------",
-                                                                 as.character((unique(xrf_adm0$country))))),
-
-                                         prettyRadioButtons(inputId = "in_rftype_rf", label = "Display rainfall as:",
-                                                            choices = c("Monthly Total" = "monthly", 
-                                                                        "Cumulative (Jan-Dec)" = "acc_cy", 
-                                                                        "Cumulative (Aug-July)" = "acc_ssn"),
-                                                            selected = "Monthly Total",
-                                                            inline = FALSE, status = "default"),
-                                         hr(),
-                                         h6(HTML("<b>Epidemiological Indicator</b>")),
-                                         br(),
-                                         selectInput(inputId = "in_indicator_rf_adm0", label = "Indicator:",
-                                                     choices = c("All Cause Consultations" = "allcause_cases", 
-                                                                 "Tested Cases" = "tested_cases", 
-                                                                 "Malaria Confirmed Cases" = "confirmed_cases",
-                                                                 "Test Positivity Ratio" = "tpr", 
-                                                                 "Malaria Severe Cases" = "severe_cases", 
-                                                                 "Malaria Deaths" = "malaria_deaths", 
-                                                                 "ANC (1st) Visit" = "anc1_visit",
-                                                                 "---------------------" = NA,
-                                                                 "COVID-19 Cases" = "covid_cases", "COVID-19 Deaths" = "covid_deaths")),
-                                         # selectInput(inputId = "in_year_rf_adm0", label = "Year", 
-                                         #             choices = rev(2016:2020), selected = 2020),
-                                         prettyRadioButtons(inputId = "in_count_type",
-                                                            label = HTML("Display indicator as:"), 
-                                                            choices = c("Cases per 1000 population" = "value_rate", "Cases" = "value"),
-                                                            inline = FALSE, status = "default")
-                            ), # End of sidebarPanel - RF National
-                            mainPanel(width = 8, plotOutput("out_rfplot_adm0"))
-                          )
-                        )
-                        
-                        
-                      ) # End of fluid page - RF National
-                      
-                      
-                      ), # End of tab Panel - RF National
-             
-             tabPanel("Sub-national Level", theme = "bootstrap_simplex.css"),
-             
-             tabPanel("Compare with Malaria Indicator", theme = "bootstrap_simplex.css",
-                      
-                      fluidPage(
-                        
-                        fluidRow(column(2, p(HTML("<b>Rainfall: Compare With Malaria Indicator</b>"))),
-                                 column(8, p(HTML("KEY ANALYTICAL QUESTIONS:")),
-                                        tags$ol(
-                                          tags$li("Q1"),
-                                          tags$li("Q2")
-                                        ),
-                                        column(2))
-                          
-                        ), # End of 1st fluidRow
-                        
-                        
-                        fluidRow(
-                          
-                          sidebarLayout(
-                            
-                            sidebarPanel(width = 2,
-                                         selectInput(inputId = "in_adminlevel_rfcomp", 
-                                                     label = "Select Administrative Level",
-                                                     choices = c("National", "Sub-national (Admin. Level 1)"), 
-                                                     selected = "National"),
-                                         selectInput(inputId = "in_adm0_rfcomp",
-                                                     label = "Select Country:",
-                                                     choices = c(sort(as.character(unique(xctry$country)))),
-                                                     selected = "Benin"),
-                                         
-                                         uiOutput(outputId = "out_adm1_menu_rfcomp"),
-                                         
-                                          selectInput(inputId = "in_indicator_rfcomp",
-                                                       label = "Select Malaria Indicator",
-                                                       choices = c("All Cause Consultation", "Malaria Confirmed Cases",
-                                                                      "Malaria Test Positivity Rate", "Severe Malaria Cases",
-                                                                       "Malaria Deaths", "ANC Visit", "COVID-19 Cases"),
-                                                        selected = "Malaria Confirmed Cases"),
-                                         
-                                         prettyRadioButtons(inputId = "in_yrs_rfcomp",
-                                                            label = "Select years to highlight (up to 5)", 
-                                                            choices = 2016:2020,
-                                                            inline = FALSE, status = "default")
-                                         
-                                         ),
-                            
-                            mainPanel(
-                              br(),
-                              fluidRow(column(6, "Malaria Indicator plot here"),
-                                       column(6, "Rainfall plot here"))
-                            )
-
-                            
-                          )
-                          
-                          
-                        ),
-                        
-                      ) # End of Fluid Page
-                      
-                      ) # End of tab Panel - RF Compare
-)
+                    
             
 
 
@@ -532,10 +471,10 @@ ui <- navbarPage(title = HTML("COVID-19 and Malaria Tracking and Vulnerability T
                    tab_malaria,
                    
                    # PANEL 3 - COVID
-                   tab_covid,
+                   tab_covid #,
                    
-                   # PANEL 4 - CLIMATE(?)
-                   tab_rf
+                   # # PANEL 4 - CLIMATE(?)
+                   # tab_rf
                    
                    
 )

@@ -33,8 +33,8 @@ library(dplyr)
 
 # Packages that (may) not in the platform
 
-pckg_list <- c("ggthemes", "tidyverse", "plotly", "rmarkdown",
-               "scales", "rmarkdown")
+pckg_list <- c("ggthemes", "gridExtra","tidyverse", "plotly", "rmarkdown",
+               "scales", "rmarkdown", "htmltools", "data.table")
 
 for (i in pckg_list) {
   if (!(require(i, character.only = TRUE))) {
