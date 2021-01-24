@@ -582,7 +582,7 @@ tab_info <- tabPanel("Info",
                                                                  ),
                                                                  tabPanel("Rainfall", 
                                                                           fluidRow(column(width = 10, 
-                                                                                          includeMarkdown("info_files/rainfall_data.RMD")))
+                                                                                          includeMarkdown("info_files/rainfall_data.Rmd")))
                                                                  )))),
                                   tabPanel("Methods",
                                            fluidPage(style = "margin-left:40px;", includeMarkdown("info_files/methods.Rmd")))
