@@ -1,0 +1,22 @@
+---
+title: "Rainfall Data"
+output: html_document
+---
+
+
+<b>
+<br/>
+## Rainfall Data
+</b>
+
+<br/>
+
+
+This dasboard uses rainfall data from Global Precipitation Mission ([GPM](https://gpm.nasa.gov/)) dataset ([GPM_3IMERGHH_06](https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_06/summary)) that is retrieved via Google Earth Engine ([GEE](https://developers.google.com/earth-engine/datasets/catalog/NASA_GPM_L3_IMERG_V06)) and made available as a [table](https://platform.civisanalytics.com/spa/#/query/tables/5487930) in M-MDIVE. The GPM dataset has 0.1<span>&#176;</span> (10-km) resolution at half-hourly time step. All half-hourly time step data in a given month is summed to produce the accumulated rainfall and is subsequently averaged across pixels that are inside each administrative boundary (level 2) to obtain a composite of monthy rainfall (in mm) for all level 2 administrative areas. 
+
+In this dashboard, rainfall is also shown in terms of anomaly, that is how much rainfall exceeds or goes below the average. This is calculated by first computing the monthly mean of rainfall across the years (from 2000 to 2020) to obtain the long-term mean (or normal/baseline) value. The anomaly is then computed by subtracting the long-term mean from the current value. 
+
+
+
+
+

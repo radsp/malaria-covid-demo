@@ -3,12 +3,29 @@ title: "Malaria Data"
 output: html_document
 ---
 
+
+<b>
 <br/>
+## Malaria Data
+</b>
+
 <br/>
 
-Malaria indicators are obtained from the submitted quarterly report ......
 
-<br/>
-<br/>
+Malaria-related indicators are sourced from HMIS as available in M-DIVE via PMI Quarterly Report (QR). There are 8 indicators that are visualized here: 
+* All cause consultations
+* Tested cases
+* Malaria confirmed cases
+* Test positivity ratio (TPR)
+* Severe cases
+* Malaria deaths
+* First Antenatal care visit (ANC1)
 
-Describe any calculations/imputations in here (i.e. use the reporting rate to adjust for the count, replace the anomalous spike in Nigeria, etc...)
+Definition of these indicators can be found in the [Malaria Quarterly Report Data Dictionary dashboard](https://platform.civisanalytics.com/spa/#/reports/68644?fullscreen=true). The test positivity ratio (TPR) is derived by dividing malaria confirmed cases with tested cases. The dashboard also includes visualization of reporting rates for all cause consultations, malaria confirmed cases and ANC 1st visit. This is calculated by dividing reports received with reports expected. 
+
+All data in this dashboard are visualized either at national (administrative level 0 / country) or sub-national (administrative level 1 / state or province) level. The malaria-indicated indicators are aggregated to national and sub-national level (from second administrative level aggregation as reported in the PMI QR) by summing data in all administrative areas that fall under the desired national/sub-national level. For TPR, the ratios were computed after aggregating tested cases and malaria confirmed cases to national and sub-national level. 
+
+With the exception of TPR and ANC-1 visit indicators, all of the aforementioned malaria-indicated indicators can be visualized either as the number of cases or cases per 1,000 population (100,000 population for deaths). This rate is calculated by dividing the national or sub-national level indicator with the population data (only population in areas with reported indicator is included). Population data is also obtained from the PMI QR. Since this variable is not continuously reported, we assume population growth rate of 3% each year to extrapolate. 
+
+Note that the malaria-related indicators shown in the visualizations are not imputed or adjusted; they are as received through PMI QR. Please refer to the [Data Validation Report dashboard](https://platform.civisanalytics.com/spa/#/reports/services/84090?fullscreen=true) to check for any data elements that do not pass the data quality checks. 
+

@@ -1,9 +1,5 @@
 
 
-## Libraries ------------------------------------------------------
-
-
-
 ## FUNCTIONS ------------------------------------------------------
 
 get_meanval <- function(u){
@@ -19,7 +15,7 @@ get_meanval <- function(u){
 
 
 # Inputs
-qr_date_max <- as.Date("2020-06-01")
+qr_date_max <- as.Date("2020-09-01")
 fcst_date_min <- Sys.Date()
 covid_date_max <- seq(Sys.Date(), length.out = 2, by = "-1 month")[2]
 
@@ -43,10 +39,10 @@ query <- sql("SELECT country, admin_level_1, admin_level_2, date, year, month,
              reports_received__confirmed_cases, reports_expected__confirmed_cases,
              reports_received__anc_consultation, reports_expected__anc_consultation,
              total_population
-             FROM reporting_qr.qr_reporting_table_pmi
+             FROM reporting_qr.qr_reporting_table
              WHERE 
              (admin_level_2 IS NOT NULL OR admin_level_2 <> '') AND  
-             (admin_level_1 IS NOT NULL OR admin_level_1 <> '')")  # This filtering is not working
+             (admin_level_1 IS NOT NULL OR admin_level_1 <> '')") 
 
 
 xm0 <- read_civis(query) 
@@ -76,11 +72,10 @@ xmal0 <- xm0 %>%
   # add population for each indicator so that if the values are NA, population will 
   # be 0. This is to avoid having higher population denominator where the count is NA
   pivot_longer(cols = vvpop, names_to = "vpop", values_to = "tmp") %>%
-  mutate(population = if_else(is.na(tmp), 0, total_population)) %>%
+  mutate(population = if_else(is.na(tmp), as.integer(0), total_population)) %>%
   pivot_wider(names_from = vpop, values_from = c(tmp, population)) %>%
   # Rename variables with tmp_ suffixes back to its original
   setNames(gsub("tmp_", "", names(.)))
-  
   
 
 
@@ -343,7 +338,7 @@ xvul0 <- read_civis("covid.vulnerability_reporting_table") %>%
 
 
 wpop <- xvul0 %>%
-  filter((date == as.Date("2020-01-01")) & !(admin_level_2 == "") & !(admin_level_1 == "")) %>%
+  filter((date == as.Date("2020-01-01")) & !(admin_level_2 == "") & !(admin_level_1 == "")) %>% #  yrly bc pop data
   select(country, admin_level_1, admin_level_2, date, year, square_km, starts_with("male"), starts_with("female")) %>%
   mutate(total_worldpop = rowSums(select(., starts_with("male"), starts_with("female")), na.rm = TRUE))
 
@@ -568,7 +563,7 @@ ts_mal_adm0 <- bind_rows(xmal_adm0, xcov_adm0, ximp_adm0) %>%
                            levels = c("allcause_cases", "tested_cases", "confirmed_cases", "tpr", 
                                       "severe_cases", "malaria_deaths", "anc1_visit"),
                            labels = c("All Cause Consultations", "Tested Cases", "Malaria Confirmed Cases",
-                                      "Test Positivity Ratio", "Malaria Severe Cases", "Malaria Deaths", "ANC (1st) Visit")))
+                                      "Test Positivity Rate", "Malaria Severe Cases", "Malaria Deaths", "ANC (1st) Visit")))
 
 ts_mal_adm1 <- bind_rows(xmal_adm1, xcov_adm1) %>%
   mutate(combogroup = factor(combogroup, 
@@ -578,7 +573,7 @@ ts_mal_adm1 <- bind_rows(xmal_adm1, xcov_adm1) %>%
                            levels = c("allcause_cases", "tested_cases", "confirmed_cases", "tpr", 
                                       "severe_cases", "malaria_deaths", "anc1_visit"),
                            labels = c("All Cause Consultations", "Tested Cases", "Malaria Confirmed Cases",
-                                      "Test Positivity Ratio", "Malaria Severe Cases", "Malaria Deaths", "ANC (1st) Visit")))
+                                      "Test Positivity Rate", "Malaria Severe Cases", "Malaria Deaths", "ANC (1st) Visit")))
 
 
 ts_mal <- bind_rows(ts_mal_adm0, ts_mal_adm1) %>%
@@ -599,7 +594,7 @@ rf0 <- read_civis("covid.gpm_monthly") %>%
 
   
 xrf_tmp1 <- rf0 %>%
-  pivot_longer(cols = starts_with("rf"), names_to = "variable", values_to = "value") %>%
+  pivot_longer(cols = c("rf", "rf_acc_cy", "rf_acc_ssn"), names_to = "variable", values_to = "value") %>%
   mutate(rf_type = case_when(variable %in% 'rf' ~ 'monthly',
                              variable %in% 'rf_acc_cy' ~ 'acc_cy',
                              variable %in% 'rf_acc_ssn' ~ 'acc_ssn',
@@ -608,6 +603,21 @@ xrf_tmp1 <- rf0 %>%
                              variable %in%'rf_ltm_acc_ssn' ~ 'acc_ssn'),
          count_type = "value_rf") 
 
+xrf_tmp_ltm <- rf0 %>%
+  pivot_longer(cols = contains("ltm"), names_to = "variable", values_to = "value") %>%
+  mutate(rf_type = case_when(variable %in%'rf_ltm' ~ 'monthly',
+                             variable %in% 'rf_ltm_acc_cy' ~ 'acc_cy',
+                             variable %in%'rf_ltm_acc_ssn' ~ 'acc_ssn')) %>%
+  group_by(country, admin_level_1, variable, rf_type, month, month_order_ssn) %>%
+  summarise(value = unique(value)) %>%
+  mutate(year = 2010,
+         year_ssn = case_when(variable %in% "rf_ltm" ~ "2010",
+                              TRUE ~ "2010/2011"),
+         count_type = "value_rf")
+
+xrf_tmp1 <- bind_rows(xrf_tmp1, xrf_tmp_ltm)
+
+# Maximum rainfall value in each admin level is needed to scale the malaria data
 xrf_tmp2 <- xrf_tmp1 %>%
   filter(!(xrf_tmp1$variable %in% c("rf_ltm", "rf_ltm_acc_cy", "rf_ltm_acc_ssn"))) %>%
   select(-c(count_type, variable)) %>%
@@ -615,7 +625,7 @@ xrf_tmp2 <- xrf_tmp1 %>%
   summarise(rfmax = max(value, na.rm = TRUE)) %>%
   ungroup()
 
-mal4rf <- subset(ts_mal, variable %in% c("allcause_cases", "tested_cases", "confirmed_cases", "severe_cases", 
+mal4rf <- subset(ts_mal, variable %in% c("allcause_cases", "tested_cases", "confirmed_cases", "tpr", "severe_cases", 
                                          "malaria_deaths", "anc1_visit", "covid_cases", "covid_deaths")) %>%
   select(country, admin_level_1, date, year, month, variable, count_type, value) %>%
   # mutate(admin_level_1 = if_else(admin_level_1 == "", NA_character_, as.character(admin_level_1))) %>%
@@ -628,21 +638,26 @@ mal4rf <- subset(ts_mal, variable %in% c("allcause_cases", "tested_cases", "conf
          # value_scaled_acc = (value * scaling_acc) + (0.1 * max(rf, na.rm = TRUE))) %>%
   ungroup() %>%
   # filter(!(is.na(count_type))) %>%
-  select(country, admin_level_1, date, year, month, variable, count_type, rf_type, value_scaled) %>%
+  mutate(mal_value0 = round(value, digits = 2)) %>%
+  select(country, admin_level_1, date, year, month, variable, count_type, rf_type, value_scaled, mal_value0) %>%
   left_join(., unique(xrf_tmp1[, c("country", "admin_level_1", "date", "month_order_ssn", "year_ssn")])) %>%
   rename('value' = 'value_scaled') %>%
   mutate(mal_label = recode(variable, 'confirmed_cases'  = "Malaria Confirmed Cases", 
                             'allcause_cases' = "New Consultations", 
-                            'malaria deaths' = 'Malaria Deaths', 
+                            'malaria_deaths' = 'Malaria Deaths', 
                             'tested_cases' = "Tested Cases",
+                            'tpr' = "Test Positivity Rate",
                             'severe_cases' = "Severe Cases",
                             'anc1_visit' = "ANC Visit", 
                             'covid_deaths' = "COVID-19 Deaths", 
                             'covid_cases' = "COVID-19 Cases")) %>%
     filter(!is.na(date)) # Some dates have NA values most likely because of admin that's not aligned
 
+# Each row has long-term mean but we only need it for 1 year
+
+
 xrf <- bind_rows(xrf_tmp1, mal4rf) %>%
-  mutate(combogroup = case_when(
+  mutate(combogroup_1 = case_when(
     (variable %in% 'rf') & !(year %in% c(2020, 2019)) ~ 'Rainfall (Other Years)',
     (variable %in% 'rf') & (year %in% c(2020, 2019)) ~ paste('Rainfall (', year, ')', sep = ""),
     (variable %in% "rf_ltm") ~ 'Rainfall Historical Mean',
@@ -656,7 +671,36 @@ xrf <- bind_rows(xrf_tmp1, mal4rf) %>%
     (count_type %in% c("value", "value_rate")) & (rf_type %in% "acc_ssn") ~ paste(mal_label, " (", year_ssn, ")", sep = ""),
     TRUE ~ 'Unknown'
   )) %>%
-  filter((!is.na(year_ssn)) & !(combogroup %in% "Unknown"))
+  filter((!is.na(year_ssn)) & !(combogroup_1 %in% "Unknown")) %>%
+  # mutate(combogroup_2 = case_when(
+  #   (count_type %in% c("value", "value_rate")) & (rf_type %in% c("monthly", "acc_cy")) &
+  #     (year %in% 2019:2020) ~ paste("Selected Indicator", " (", year, ")", sep = ""),
+  #   (count_type %in% c("value", "value_rate")) & (rf_type %in% "acc_ssn") &
+  #     (year_ssn %in% c("2018/2019", "2019/2020", "2020/2021")) ~ paste("Selected Indicator", " (", year_ssn, ")", sep = ""),
+  #   TRUE ~ combogroup_1
+  # )) %>%
+  mutate(combogroup_2 = 
+           case_when( ((count_type %in% c("value", "value_rate")) & !(rf_type %in% c("acc_ssn")) & (year %in% 2019:2020)) ~ 
+                        paste("Selected Indicator", " (", year, ")", sep = ""),
+                      ((count_type %in% c("value", "value_rate")) & (rf_type %in% c("acc_ssn")) & (year_ssn %in% c("2018/2019", "2019/2020", "2020/2021"))) ~ 
+                        paste("Selected Indicator", " (", year_ssn, ")", sep = ""),
+                      ((count_type %in% c("value_rf")) & (rf_type %in% c("monthly")) & (year %in% 2019:2020)) ~ 
+                        paste("Rainfall (", year, ")", sep = ""),
+                      ((count_type %in% c("value_rf")) & (rf_type %in% c("acc_cy")) & (year %in% 2019:2020)) ~ 
+                        paste("Accumulated Rainfall (", year, ")", sep = ""),
+                      ((count_type %in% c("value_rf")) & (rf_type %in% c("acc_ssn")) & (year_ssn %in% c("2018/2019", "2019/2020", "2020/2021"))) ~ 
+                        paste("Accumulated Rainfall (", year_ssn, ")", sep = ""),
+                      ((count_type %in% c("value_rf")) & (str_detect(variable, "ltm"))) ~ "Rainfall Historical Mean",
+                      ((count_type %in% c("value_rf")) & (str_detect(rf_type, "acc"))) ~ "Accumulated Rainfall (Other Years)",
+                      TRUE ~ "Rainfall (Other Years)")) %>%
+  mutate(mygroup = case_when(str_detect(variable, "ltm") ~ "Historical Mean",
+                             (rf_type %in% "acc_ssn") & !(str_detect(variable, "ltm")) ~ year_ssn,
+                             TRUE ~ as.character(year))) %>%
+  mutate(txt_info = case_when(
+    (variable %in% c("rf", "rf_acc_cy", "rf_acc_ssn")) ~ paste("Rainfall (", year, ")", sep = ""),
+    (variable %in% c("rf_ltm", "rf_ltm_acc_cy", "rf_ltm_acc_ssn")) ~ "Rainfall Historical Mean",
+    TRUE ~ paste(mal_label, "(", year, "); Value = ", mal_value0, sep = "")))
+
 
 
 xctry <- ts_mal_adm0
@@ -668,7 +712,8 @@ xrf_adm1 <- subset(xrf, !(admin_level_1 %in% ""))
 
 xctry <- xctry %>%
   mutate(info_txt = case_when(stringr::str_detect(variable, "ltm") ~ "Historical Mean",
-                              stringr::str_detect(variable, "reports") ~ paste("Report Rate (2020): ", info, sep = ""),
+                              stringr::str_detect(variable, "reports") ~ paste("Reporting Rate (",  month.abb[month], " ", year,"): ", 
+                                                                               percent(as.numeric(as.character(info)), accuracy = 0.1), sep = ""),
                               stringr::str_detect(variable, "fcst") ~ paste("COVID-19 Forecast;\nScenario: ", info, sep = ""),
                               stringr::str_detect(variable, "covid_cases") ~ "COVID-19 Cases",
                               stringr::str_detect(variable, "covid_deaths") ~ "COVID-19 Deaths", 
@@ -676,7 +721,8 @@ xctry <- xctry %>%
 
 xprov <- xprov %>%
   mutate(info_txt = case_when(stringr::str_detect(variable, "ltm") ~ "Historical Mean",
-                              stringr::str_detect(variable, "reports") ~ paste("Report Rate (2020): ", info, sep = ""),
+                              stringr::str_detect(variable, "reports") ~ paste("Reporting Rate (", month.abb[month], " ", year,"): ", 
+                                                                               percent(as.numeric(as.character(info)), accuracy = 0.1), sep = ""),
                               stringr::str_detect(variable, "fcst") ~ paste("COVID-19 Forecast;\nScenario: ", info, sep = ""),
                               stringr::str_detect(variable, "covid_cases") ~ "COVID-19 Cases",
                               stringr::str_detect(variable, "covid_deaths") ~ "COVID-19 Deaths", 
@@ -688,5 +734,115 @@ rm(list = setdiff(ls(), c("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xrf","xvul0
                           lsf.str())))
 
 # save("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xrf","xvul0", "wpop_adm0", "wpop_adm1",
-#       file = "appdata.RData")
+#      file = "appdata.RData")
+
+
+xmob <- xvul0 %>% select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", ends_with("baseline"))) %>%
+  filter( (admin_level_2 == "") & (!is.na(day)) ) %>%
+  select(-admin_level_2) %>%
+  select(-c("day", "date")) %>%
+  group_by(country, admin_level_1, year, month) %>%
+  summarise_all(mean, na.rm = TRUE) %>% ungroup() %>%
+  mutate(date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
+  relocate(date, .before = "year") %>%
+  setNames(gsub("_percent_change_from_baseline", "", names(.))) %>%
+  mutate(country = factor(country, levels = as.character(unique(country))))
+
+xmob_long <- xmob %>% 
+  filter(date >= as.Date("2020-01-01")) %>%
+  pivot_longer(cols = -c(country, admin_level_1, date, year, month), names_to = "variable", values_to = "value") %>%
+  mutate(var_label = factor(gsub("_", " ", variable), 
+                            levels = c("residential", "workplaces", "transit stations",
+                                       "grocery and pharmacy", "retail and recreation", "parks"))) %>%
+  mutate(variable = factor(paste("mob_", variable, sep = "")),
+         info_txt = paste(str_to_title(var_label), " (", month.abb[month], " ", year,"): ", prettyNum(value, digits = 2), "% change from baseline", sep = ""))
+
+# CUSTOM SCORES ---------  ---------  ---------  ---------  ---------  ---------  ---------  ---------  --------- 
+
+wpop <- xvul0 %>% 
+  filter(date == "2020-01-01" & !(admin_level_2 == "") & !(admin_level_1 == "")) %>%
+  select(country, admin_level_1, admin_level_2, date, year, square_km, starts_with("male"), starts_with("female")) %>%
+  mutate(total_worldpop = rowSums(select(., starts_with("male"), starts_with("female")), na.rm = TRUE))
+
+wpop_adm1_custom <- wpop %>% 
+  select(-c(date, admin_level_2)) %>%
+  group_by(country, admin_level_1, year) %>%
+  summarise_all(.funs =  list(~sum(., na.rm = TRUE))) %>%
+  ungroup() %>%
+  mutate(pop_perc_65_years_and_over = rowSums(select(., matches("65_to_69|70_to_74|75_to_79|80_years")))/total_worldpop,
+         pop_perc_45_to_64_years = rowSums(select(., matches("45_to_49|50_to_54|55_to_59|60_to_64")))/total_worldpop,
+         pop_perc_25_to_44_years = rowSums(select(., matches("25_to_29|30_to_34|35_t0_39|40_to_44")))/total_worldpop,
+         pop_perc_15_to_24_years = rowSums(select(., matches("15_to_19|20_to_24")))/total_worldpop,
+         pop_perc_5_to_14_years = rowSums(select(., matches("5_to_9|10_to_14")))/total_worldpop,
+         pop_perc_0_to_4_years = rowSums(select(., matches("0_to_12|1_to_4")))/total_worldpop) %>%
+  select(country, admin_level_1, year,starts_with("pop_perc_")) %>%
+  mutate(date = "2020-01-01") %>%
+  mutate(date = as.Date(as.character(date)))
+
+# malaria data - admin level 1
+xvul1 <- xvul0 %>% 
+  filter(date >= "2020-01-01" & !(admin_level_1 == "") & !(admin_level_2 == "")) %>%
+  select(country, admin_level_1, date, malaria_deaths, confirmed_cases,
+         suspected_cases, health_workers, new_consultation_all_cause) %>%
+  group_by(country, admin_level_1, date) %>%
+  summarise_all(.funs =  list(~sum(., na.rm = TRUE))) %>%
+  ungroup() %>%
+  mutate(date = as.Date(as.character(date)))
+
+
+colnames(xvul1)[4:8] <- paste("mal", colnames(xvul1)[4:8], sep = "_") # adding prefix to colnames
+
+# mobility data
+xmob_custom <- xvul0 %>% select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", ends_with("baseline"))) %>%
+  filter(year==2020 & (admin_level_2 == "") & (!is.na(day)) ) %>% # adding filter for 2020
+  select(-admin_level_2) %>%
+  select(-c("day", "date")) %>%
+  group_by(country, admin_level_1, year, month) %>%
+  summarise_all(mean, na.rm = TRUE) %>% ungroup() %>%
+  mutate(date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
+  relocate(date, .before = "year") %>%
+  setNames(gsub("_percent_change_from_baseline", "", names(.))) %>%
+  mutate(country = factor(country, levels = as.character(unique(country)))) %>%
+  mutate(residential = -1 * residential) # inverting residential var 
+
+colnames(xmob_custom)[6:11] <- paste("mob", colnames(xmob_custom)[6:11], sep = "_")
+
+# handwashing data - missing for all of 2020
+xwash_custom <- xvul0 %>% select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", contains("handwashing"))) %>%
+  filter( (admin_level_2 == "") & (!is.na(day)) ) %>% 
+  select(-c(admin_level_2, day, date)) %>%
+  group_by(country, admin_level_1, year, month) %>%
+  summarise_all(mean, na.rm = TRUE) %>% ungroup() %>%
+  mutate(date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
+  relocate(date, .before = "year") %>%
+  mutate(country = factor(country, levels = as.character(unique(country))))
+
+
+xwash_custom[,-c(1:4)] <- data.frame(lapply(xwash_custom[,-c(1:4)], function(x) {x = 100 - x})) # inverting handwashing vars
+xwash_custom <- data.frame(lapply(xwash_custom, function(x) {gsub("NaN", NA, x)})) # setting NaNs to NA
+
+mob_wash <- merge(xmob_custom, xwash_custom, by=c('country', 'admin_level_1', 'date', 'year', 'month'), all=T) 
+mal_mob_wash <- merge(xvul1, mob_wash, by=c('country', 'admin_level_1', 'date'), all=T)  # full join
+
+# updating to year month cols
+mal_mob_wash <- mal_mob_wash %>%
+  mutate(month = substr(date, start=6, stop=7),
+         year = substr(date, start=1, stop=4),
+         month = str_remove(month, "^0+")) 
+
+# add in pop data - this should now have all data loaded
+custom0 <- merge(mal_mob_wash, wpop_adm1_custom, by=c('country', 'admin_level_1', 'year','date'), all=T) 
+custom0 <- custom0 %>%
+  filter(admin_level_1 != "")
+
+vars<- colnames(custom0)[-c(1:4,10)] # character vars (i.e. month, country)
+custom0[,vars] <- data.frame(lapply(custom0[,vars], function(x) as.numeric(as.character(x))))
+
+custom0_long <- custom0 %>%
+  group_by(country, admin_level_1, date, month, year) %>%
+  pivot_longer(cols=c(starts_with("mal_"), starts_with("mob_"), starts_with("pop_"),
+                      contains("washing")),names_to = "variable", values_to = "value") %>%
+  mutate(value = ifelse(grepl("NaN", value), NA, value))
+
+custom0_long$date <- as.Date(custom0_long$date)
 

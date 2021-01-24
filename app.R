@@ -8,10 +8,13 @@
 ##
 ## -----------------------------------------------------------------
 
+options(civis.default_db = "PMI")
 
 ## -----------------------------------------------------------------
 # Load packages
 ## -----------------------------------------------------------------
+# install.packages("ggthemes")
+# install.packages("Hmisc")
 
 library(shiny)
 library(civis)
@@ -29,20 +32,15 @@ library(shinydashboard)
 library(civis)
 library(ggplot2)
 library(dplyr)
-
-
-# Packages that (may) not in the platform
-
-pckg_list <- c("ggthemes", "tidyverse", "plotly", "rmarkdown",
-               "scales", "rmarkdown")
-
-for (i in pckg_list) {
-  if (!(require(i, character.only = TRUE))) {
-    install.packages(i)
-    library(i)
-  }
-}
-
+library(ggthemes)
+library(gridExtra)
+library(tidyverse)
+library(plotly)
+library(rmarkdown)
+library(scales)
+library(htmltools)
+library(data.table)
+library(Hmisc)
 
 
 
