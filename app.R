@@ -13,8 +13,8 @@ options(civis.default_db = "PMI")
 ## -----------------------------------------------------------------
 # Load packages
 ## -----------------------------------------------------------------
-# install.packages("ggthemes")
-# install.packages("Hmisc")
+install.packages("ggthemes")
+install.packages("Hmisc")
 
 library(shiny)
 library(civis)
