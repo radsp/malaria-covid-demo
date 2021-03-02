@@ -78,29 +78,33 @@ else{
   # INFO TAB #######################################################################
 
   
-  observeEvent(input$go2snap, {
-    updateNavbarPage(session, "top_page", selected = "Snapshot")
-  })
+    
+    observeEvent(input$go2snap, {
+      updateNavbarPage(session, "top_page", selected = "Snapshot")
+    })
+    
+    observeEvent(input$go2pcnt, {
+      updateNavbarPage(session, "top_page", selected = "Changes In Indicator")
+    })
+    
+    observeEvent(input$go2ts, {
+      updateNavbarPage(session, "top_page", selected = "Historical time series")
+    })
+    
+    observeEvent(input$go2rf, {
+      updateNavbarPage(session, "top_page", selected = "Rainfall")
+    })
+    
+    observeEvent(input$go2custom, {
+      updateNavbarPage(session, "top_page", selected = "In-Country Calculator")
+    })
+    
+    observeEvent(input$go2surgo, {
+      updateNavbarPage(session, "top_page", selected = "Other Sources")
+    })
+    
   
-  observeEvent(input$go2pcnt, {
-    updateNavbarPage(session, "top_page", selected = "Changes In Indicator")
-  })
   
-  observeEvent(input$go2ts, {
-    updateNavbarPage(session, "top_page", selected = "Historical time series")
-  })
-  
-  observeEvent(input$go2rf, {
-    updateNavbarPage(session, "top_page", selected = "Rainfall")
-  })
-  
-  observeEvent(input$go2custom, {
-    updateNavbarPage(session, "top_page", selected = "In-Country Calculator")
-  })
-  
-  observeEvent(input$go2surgo, {
-    updateNavbarPage(session, "top_page", selected = "Other Sources")
-  })
   
   # MALARIA TAB ####################################################################
 
@@ -118,8 +122,8 @@ else{
     return(input$in_region_snapshot)
   })
   
-  output$out_snapshot_panel <- renderUI({
     
+  get_snapshot_panel <- eventReactive(input$goplot_snap, {
     myregion <- snapshot_region()
     
     if (snapshot_region() %in% region_list) {
@@ -128,141 +132,186 @@ else{
       
       fluidPage(style = "margin-left:20px;",
                 
-        fluidRow(column(6, # offset = 0.75,
-                        HTML("Where have malaria-related indicators been increasing or decreasing as compared to the selected baseline year?
+                fluidRow(column(6, # offset = 0.75,
+                                HTML("Where have malaria-related indicators been increasing or decreasing as compared to the selected baseline year?
                              <i>(select indicator to map from the sidebar panel)</i><br/>&nbsp")),
-                 column(6, style = 'padding-left:30px;',
-                        HTML("Has mobility increased or decreased (represented through Google mobility data)? How does mobility compared to the selected indicator")
-                 )
-        ),
-        fluidRow(column(6, htmlOutput("out_txt_maptitle_snapshot")),
-                 column(6, style = 'padding-left:30px;', htmlOutput("out_txt_mobilitymaptitle_snapshot"))),
-        fluidRow(
-          column(6, style = 'padding-right:20px;', leafletOutput("out_map_snapshot")),
-          column(6, style = 'padding-left:30px;', leafletOutput("out_mobilitymap_snapshot"))
-        ),
-        br(),
-        br(),
-        br(),
-        fluidRow(column(12, style = "padding-bottom:2px", 
-                        HTML("Which countries observed the largest decrease/increase in each malaria indicators?"))),
-        fluidRow(column(12, style = "padding-bottom:5px", htmlOutput("out_title_malranking_snapshot"))),
-        fluidRow(column(12, plotOutput(outputId = "out_malranking_snapshot")))
+                         column(6, style = 'padding-left:30px;',
+                                HTML("Has mobility increased or decreased (represented through Google mobility data)? How does mobility compared to the selected indicator")
+                         )
+                ),
+                fluidRow(column(6, htmlOutput("out_txt_maptitle_snapshot")),
+                         column(6, style = 'padding-left:30px;', htmlOutput("out_txt_mobilitymaptitle_snapshot"))),
+                fluidRow(
+                  column(6, style = 'padding-right:20px;', leafletOutput("out_map_snapshot")),
+                  column(6, style = 'padding-left:30px;', leafletOutput("out_mobilitymap_snapshot"))
+                ),
+                br(),
+                br(),
+                br(),
+                fluidRow(column(12, style = "padding-bottom:2px", 
+                                HTML("Which countries observed the largest decrease/increase in each malaria indicators?"))),
+                fluidRow(column(12, style = "padding-bottom:5px", htmlOutput("out_title_malranking_snapshot"))),
+                fluidRow(column(12, plotOutput(outputId = "out_malranking_snapshot")))
       )
-    
+      
     } else {
       
       ### one country view ---------------------------------------------------------
       ### Top part shows country-level bar chart, bottom part is subnational-level map + charts
       
       fluidPage(style = "margin-left:20px",
-        
-        ### National-level data --------------------------
-        fluidRow(column(12, htmlOutput("out_txt_adm0title_snapshot"))),
-        ### Key analytical questions ----------------------
-        fluidRow(column(4, style = 'padding-left:10px; padding-right:20px; padding-top:1px; padding-bottom:5px;',
-                        HTML("Have malaria-related indicators (at national level) decreased/increased as compared to the selected baseline year?")),
-                 column(4, style = 'padding-left:30px; padding-right:10px; padding-top:1px; padding-bottom:5px;',
-                        offset = 0, HTML("Have data been reported from all facilities in order to have a complete picture of the indicator?")),
-                 column(4, offset = 0, style = 'padding-left:40px; padding-right:0px; padding-top:1px; padding-bottom:5px;',
-                        HTML("Is mobility lower than average such that it potentially affect the malaria-related indicators?"))),
-        #### Plot title --------------------------------------
-        fluidRow(column(4, style = 'padding-left:10px; padding-right:20px; padding-top:1px; padding-bottom:5px;',
-                        htmlOutput("out_plottitle_adm0indicator_snapshot")),
-                 column(4, style = 'padding-left:30px; padding-right:10px; padding-top:1px; padding-bottom:5px;',
-                        offset = 0, htmlOutput("out_plottitle_adm0reporting_snapshot")),
-                 column(4, offset = 0, style = 'padding-left:40px; padding-right:0px; padding-top:1px; padding-bottom:5px;',
-                        htmlOutput("out_plottitle_adm0mobility_snapshot"))),
-        #### Plot --------------------------------------------
-        fluidRow(style = 'height:250px', 
-                 column(4, offset = 0, style = 'padding-left:0px; padding-right:35px; padding-top:1px; padding-bottom:5px;', 
-                        plotOutput("out_adm0indicator_snapshot", height = 250)),
-                 column(4, offset = 0, style = 'padding-left:30px; padding-right:60px; padding-top:1px; padding-bottom:5px',
-                        plotOutput("out_adm0reporting_snapshot", height = 250), align = "left"),
-                 column(4, offset = 0, style = 'padding-left:40px; padding-right:0px; padding-top:1px; padding-bottom:5px;',
-                        plotOutput("out_adm0mobility_snapshot", height = 250))),
-        br(), 
-        hr(),
-        
-        ### Subnational-level data --------------------------
-        fluidRow(column(12, htmlOutput("out_txt_adm1title_snapshot"))),
-        fluidRow(column(6, style = "padding-bottom:5px",
-                        HTML("Where have malaria-related indicators been increasing or decreasing as compared to the selected baseline year?<br/>
+                
+                ### National-level data --------------------------
+                fluidRow(column(12, htmlOutput("out_txt_adm0title_snapshot"))),
+                ### Key analytical questions ----------------------
+                fluidRow(column(4, style = 'padding-left:10px; padding-right:20px; padding-top:1px; padding-bottom:5px;',
+                                HTML("Have malaria-related indicators (at national level) decreased/increased as compared to the selected baseline year?")),
+                         column(4, style = 'padding-left:30px; padding-right:10px; padding-top:1px; padding-bottom:5px;',
+                                offset = 0, HTML("Have data been reported from all facilities in order to have a complete picture of the indicator?")),
+                         column(4, offset = 0, style = 'padding-left:40px; padding-right:0px; padding-top:1px; padding-bottom:5px;',
+                                HTML("Is mobility lower than average such that it potentially affect the malaria-related indicators?"))),
+                #### Plot title --------------------------------------
+                fluidRow(column(4, style = 'padding-left:10px; padding-right:20px; padding-top:1px; padding-bottom:5px;',
+                                htmlOutput("out_plottitle_adm0indicator_snapshot")),
+                         column(4, style = 'padding-left:30px; padding-right:10px; padding-top:1px; padding-bottom:5px;',
+                                offset = 0, htmlOutput("out_plottitle_adm0reporting_snapshot")),
+                         column(4, offset = 0, style = 'padding-left:40px; padding-right:0px; padding-top:1px; padding-bottom:5px;',
+                                htmlOutput("out_plottitle_adm0mobility_snapshot"))),
+                #### Plot --------------------------------------------
+                fluidRow(style = 'height:250px', 
+                         column(4, offset = 0, style = 'padding-left:0px; padding-right:35px; padding-top:1px; padding-bottom:5px;', 
+                                plotOutput("out_adm0indicator_snapshot", height = 250)),
+                         column(4, offset = 0, style = 'padding-left:30px; padding-right:60px; padding-top:1px; padding-bottom:5px',
+                                plotOutput("out_adm0reporting_snapshot", height = 250), align = "left"),
+                         column(4, offset = 0, style = 'padding-left:40px; padding-right:0px; padding-top:1px; padding-bottom:5px;',
+                                plotOutput("out_adm0mobility_snapshot", height = 250))),
+                br(), 
+                hr(),
+                
+                ### Subnational-level data --------------------------
+                fluidRow(column(12, htmlOutput("out_txt_adm1title_snapshot"))),
+                fluidRow(column(6, style = "padding-bottom:5px",
+                                HTML("Where have malaria-related indicators been increasing or decreasing as compared to the selected baseline year?<br/>
                              <i>(select indicator to map from the sidebar panel)</i>")),
-                 column(5, style = "padding-bottom:5px; padding-left:10px;",
-                        HTML("Placeholder for mobility data plot(map?)"))),
-        fluidRow(column(6, htmlOutput("out_txt_maptitle_snapshot")),
-                 column(6, style = 'padding-left:30px;', htmlOutput("out_txt_mobilitymaptitle_snapshot"))),
-        fluidRow(column(6, style = 'padding-right:20px;', leafletOutput("out_map_snapshot")),
-                 column(6, style = 'padding-left:30px;',leafletOutput("out_mobilitymap_snapshot"))),
-        br(),
-        br(),
-        fluidRow(column(12, style = "padding-bottom:2px", 
-                        HTML("<br/>Which region observed the largest decrease/increase in each malaria indicators?"))),
-        fluidRow(column(12, style = "padding-bottom:5px", htmlOutput("out_title_malranking_snapshot"))),
-        fluidRow(column(12, plotOutput(outputId = "out_adm1malranking_snapshot"))))
+                         column(5, style = "padding-bottom:5px; padding-left:10px;",
+                                HTML("Has mobility increased or decreased (represented through Google mobility data)? How does mobility compared to the selected indicator"))),
+                fluidRow(column(6, htmlOutput("out_txt_maptitle_snapshot")),
+                         column(6, style = 'padding-left:30px;', htmlOutput("out_txt_mobilitymaptitle_snapshot"))),
+                fluidRow(column(6, style = 'padding-right:20px;', leafletOutput("out_map_snapshot")),
+                         column(6, style = 'padding-left:30px;',leafletOutput("out_mobilitymap_snapshot"))),
+                br(),
+                br(),
+                fluidRow(column(12, style = "padding-bottom:2px", 
+                                HTML("<br/>Which region observed the largest decrease/increase in each malaria indicators?"))),
+                fluidRow(column(12, style = "padding-bottom:5px", htmlOutput("out_title_malranking_snapshot"))),
+                fluidRow(column(12, plotOutput(outputId = "out_adm1malranking_snapshot"))))
+    }
+    
+  }, ignoreNULL = FALSE)  
+    
+  
+  
+  output$out_snapshot_panel <- renderUI({ get_snapshot_panel() })
+  
+  
+  output$add_datepicker_pand_snap <- renderUI({
+    
+    cal_tt <- filter_region_snap(xctry, input$in_region_snapshot, region_list, regions) %>%
+      pull(date) %>% range(., na.rm = TRUE) 
+    
+    airDatepickerInput(inputId = "ttpand_snap", label = "Select pandemic date range to analyze",
+                       range = TRUE, view = "months", clearButton = TRUE, minView = "months",
+                       dateFormat = "M yyyy", monthsField =  "monthsShort", value = drangeF_snap + 1,
+                       minDate = as.Date("2017-01-01"), maxDate = as.Date("2021-02-01"))
+  })
+  
+  output$add_datepicker_comp_snap <- renderUI({
+    if (input$in_ltm_or_yr_snap %in% "Historical Mean") {
+      NULL
+    } else {
+      cal_tt <- filter_region_snap(xctry, input$in_region_snapshot, region_list, regions) %>%
+        pull(date) %>% range(., na.rm = TRUE) 
+      airDatepickerInput(inputId = "ttcomp_snap", label = NULL, range = TRUE, view = "months", minView = "months", clearButton = TRUE,
+                         dateFormat = "M yyyy", monthsField = "monthsShort", value = drange0_snap + 1,
+                         minDate = as.Date("2017-01-01"), maxDate = as.Date("2021-02-01"))
     }
   })
+  
 
 
 
   ## Malaria snapshot: text and titles output --------------------------------------
   
+  get_text_snap <- eventReactive(input$goplot_snap, {
+    map_indi <- paste("<h5><b>Percentage changes for ", indicator_labels[[input$in_indicator_snapshot]],
+                                   " in ", paste(format(input$ttpand_snap, "%b %Y"), collapse = " - "),
+                                   " (from ", paste(format(input$ttcomp_snap, "%b %Y"), collapse = " - "), ")</b></h5>",sep = "")
+    bar_multictry <- paste("<h5><b>Percentage changes for all indicators ",
+                           " in ", paste(format(input$ttpand_snap, "%b %Y"), collapse = " - "),
+                           " (from ", paste(format(input$ttcomp_snap, "%b %Y"), collapse = " - "), ")</b></h5>",sep = "")
+    map_mob <- paste("<h5><b>Mean changes across Google's mobility categories ",
+                     " in ", paste(format(input$ttpand_snap, "%b %Y"), collapse = " - "),
+                     " (from baseline: Jan 3 - Feb 6, 2020)</b></h5>",sep = "")
+    bar_indi_1ctry_natl <- paste("<h5><b>Percentage changes in all indicators in ", paste(format(input$ttpand_snap, "%b %Y"), collapse = " - "),
+                                 " (from ", paste(format(input$ttcomp_snap, "%b %Y"), collapse = " - "), ")</b></h5>", sep = "")
+    
+    rr_1ctry_natl <- paste("<h5><b>Average monthly reporting rate in ", paste(format(input$ttpand_snap, "%b %Y"), collapse = " - "),
+                           " and ", paste(format(input$ttcomp_snap, "%b %Y"), collapse = " - "), "</b></h5>", sep = "")
+    
+    natl_1ctry <- paste("<h4>", input$in_region_snapshot, " - National Level</h4><br/>", sep = "")
+    
+    subnatl_1ctry <- paste("<h4>", input$in_region_snapshot, " - Subnational Level</h4><br/>", sep = "")
+    
+    return(list(map_indi = map_indi, bar_multictry = bar_multictry, map_mob = map_mob, bar_indi_1ctry_natl = bar_indi_1ctry_natl,
+                rr_1ctry_natl = rr_1ctry_natl, natl_1ctry = natl_1ctry, subnatl_1ctry = subnatl_1ctry))
+  }, ignoreNULL = FALSE)
+  
   # Indicator map title
   output$out_txt_maptitle_snapshot <- renderUI({
-    txt <- paste("<h5><b>Percentage changes for ", indicator_labels[[input$in_indicator_snapshot]],
-                 " in ", input$in_yr0m0_snap, "-", input$in_yr0mf_snap, " 2020 ",
-                 "(from ", input$in_yr0_snap, ")</b></h5>",sep = "")
-    HTML(txt)
+    txt <- get_text_snap()
+    HTML(txt$map_indi)
   })
   
   # Indicator bar chart title 
   output$out_title_malranking_snapshot <- renderUI({
-    txt <- paste("<h5><b>Percentage changes for all indicators ",
-                 " in ", input$in_yr0m0_snap, "-", input$in_yr0mf_snap, " 2020 ",
-                 "(from ", input$in_yr0_snap, ")</b></h5>",sep = "")
-    HTML(txt)
+    txt <- get_text_snap()
+    HTML(txt$bar_multictry)
   })
   
   # Mobility map title 
   output$out_txt_mobilitymaptitle_snapshot <- renderUI({
-    txt <- paste("<h5><b>Mean changes across Google's mobility categories ",
-                 " in ", input$in_yr0m0_snap, "-", input$in_yr0mf_snap, " 2020 ",
-                 "(from baseline: Jan 3 - Feb 6, 2020)</b></h5>",sep = "")
-    HTML(txt)
+    txt <- get_text_snap()
+    HTML(txt$map_mob)
   })
   
   ## One country national level title 
   output$out_txt_adm0title_snapshot <- renderUI({
-    txt <- paste("<h4>", input$in_region_snapshot, " - National Level</h4><br/>", sep = "")
-    HTML(txt)
+    txt <- get_text_snap()
+    HTML(txt$natl_1ctry)
   })
   
   ## One country subnational level title 
   output$out_txt_adm1title_snapshot <- renderUI({
-    txt <- paste("<h4>", input$in_region_snapshot, " - Subnational Level</h4><br/>", sep = "")
-    HTML(txt)
+    txt <- get_text_snap()
+    HTML(txt$subnatl_1ctry)
   })
   
   ## One country title for national-level indicator ranking plot  
   output$out_plottitle_adm0indicator_snapshot <- renderUI({
-    txt <- paste("<h5><b>Percentage changes in ", input$in_yr0m0_snap, "-", input$in_yr0mf_snap,
-                 " 2020 (from ", input$in_yr0_snap, ")</b></h5>", sep = "")
-    HTML(txt)
+    txt <- get_text_snap()
+    HTML(txt$bar_indi_1ctry_natl)
   })
   
   ## One country title for national-level reporting rate plot 
   output$out_plottitle_adm0reporting_snapshot <- renderUI({
-    txt <- paste("<h5><b>Average monthly reporting rate between ", input$in_yr0m0_snap, "-",
-                 input$in_yr0mf_snap, "</b></h5>", sep = "")
-    HTML(txt)
+    txt <- get_text_snap()
+    HTML(txt$rr_1ctry_natl)
   })
   
   ## One country title for national-level mobility bar plot 
   output$out_plottitle_adm0mobility_snapshot <- renderUI({
-    txt <- paste("<h5><b>Average monthly change in mobility between ", input$in_yr0m0_snap, "-",
-                 input$in_yr0mf_snap, "</b></h5>", sep = "")
-    HTML(txt)
+    txt <- get_text_snap()
+    HTML(txt$map_mob)
   })
   
   
@@ -275,74 +324,91 @@ else{
   # Reactive function to obtain shapefile based on user-selected inputs
   
 
-  get_mymap <- reactive({
+  get_mymap <- eventReactive(input$goplot_snap, {
     
-    if (input$in_region_snapshot %in% region_list) {
-      mapdat <- xctry; sdat <- s0 
+    if ( (input$in_ltm_or_yr_snap %in% "Select a date range") & (!check_nmonth(input$ttpand_snap, input$ttcomp_snap)) ) {
+      
+      mymap <- NULL
+      
     } else {
-      mapdat <- xprov; sdat <- s1
+      
+      if (input$in_region_snapshot %in% region_list) {
+        mapdat <- xctry; sdat <- s0 
+      } else {
+        mapdat <- xprov; sdat <- s1
+      }
+      
+      # use covid deaths if indicator is malaria deaths and set legend appropriately
+      if ("All Cause Consultations" %in% "malaria_deaths") {
+        covid_str <- "covid_deaths"
+        covid_legend <- "COVID-19 Cumulative Deaths"
+      } else {
+        covid_str <- "covid_cases"
+        covid_legend <- "COVID-19 Cumulative Cases"
+      }
+      
+      xmap <- filter_region_snap(mapdat, input$in_region_snapshot, region_list, regions) %>%
+        filter(count_type %in% input$in_yaxs_snap) %>%
+        get_shpdat_snap(., input$in_indicator_snapshot, sdat, input$ttcomp_snap, input$ttpand_snap, covid_str)
+      
+      minval <- min(-100, min(xmap$delta, na.rm = TRUE), na.rm = TRUE)
+      maxval <- max(100, max(xmap$delta, na.rm = TRUE), na.rm = TRUE)
+      
+      map_pal <- colorBin(delta_map_clr, domain = xmap$delta,
+                          bins = c(minval, -50, -25, -10, 0, 10, 25, 50, maxval))
+      
+      pts_covid <- subset(xmap, !(is.na(covid_cumu_scaled)) | (covid_cumu_scaled > 0))
+      
+      view0 <- get_latlon0(input$in_region_snapshot, xmap)
+      
+      # view0 <- get_latlon0("All Countries", xmap)
+      
+      mymap <- leaflet(xmap) %>%
+        setView(view0[1], view0[2], view0[3]) %>%
+        addProviderTiles("CartoDB.Positron")  %>%
+        addPolygons(color = "#444444", weight = 1, fillOpacity = 0.8,
+                    fillColor = ~ map_pal(delta),
+                    popup = ~htmlEscape(txt_poly)) %>% 
+        addCircleMarkers(lng = pts_covid$lon_ctr, lat =  pts_covid$lat_ctr,
+                         radius = ~ (covid_cumu_scaled),
+                         # color = "#ffca05", fill = "#ffca05",
+                         color = "#a65628", fill = "#a65628",
+                         fillOpacity = 0.8,
+                         popup = htmlEscape(pts_covid$txt_cov)) %>%
+        addLegendCustom("bottomleft", colors = "#a65628",
+                        sizes = 15, labels = covid_legend,
+                        shapes = "circle", borders = "#a65628",
+                        opacity = 0.96) %>%
+        addLegend("bottomleft", pal = map_pal, values = ~ delta,
+                  opacity = 0.8, labFormat = labelFormat(between = " to "),
+                  title = "% Change")
+      
+      if (!("delta" %in% colnames(xmap))){
+        xmap <- xmap %>% addLabelOnlyMarkers(lng = view0[1], lat = view0[2], label = "Data is unavailable")
+      }
+      
     }
-    
-    # use covid deaths if indicator is malaria deaths and set legend appropriately
-    if ("All Cause Consultations" %in% "malaria_deaths") {
-      covid_str <- "covid_deaths"
-      covid_legend <- "COVID-19 Cumulative Deaths"
-    } else {
-      covid_str <- "covid_cases"
-      covid_legend <- "COVID-19 Cumulative Cases"
-    }
-    
-    xmap <- filter_region_snap(mapdat, input$in_region_snapshot, region_list, regions) %>%
-      filter(count_type %in% input$in_yaxs_snap) %>%
-      get_shpdat_snap(., input$in_indicator_snapshot, sdat, input$in_yr0_snap,
-                      input$in_yr0m0_snap, input$in_yr0mf_snap, covid_str)
-
-    minval <- min(-100, min(xmap$delta, na.rm = TRUE), na.rm = TRUE)
-    maxval <- max(100, max(xmap$delta, na.rm = TRUE), na.rm = TRUE)
-    
-    map_pal <- colorBin(delta_map_clr, domain = xmap$delta,
-                    bins = c(minval, -50, -25, -10, 0, 10, 25, 50, maxval))
-    
-    pts_covid <- subset(xmap, !(is.na(covid_cumu_scaled)) | (covid_cumu_scaled > 0))
-    
-    # view0 <- get_latlon0(input$in_region_snapshot, xmap)
-    
-    view0 <- get_latlon0("All Countries", xmap)
-    
-    mymap <- leaflet(xmap) %>%
-      setView(view0[1], view0[2], view0[3]) %>%
-      addProviderTiles("CartoDB.Positron")  %>%
-      addPolygons(color = "#444444", weight = 1, fillOpacity = 0.8,
-                  fillColor = ~ map_pal(delta),
-                  popup = ~htmlEscape(txt_poly)) %>% 
-      addCircleMarkers(lng = pts_covid$lon_ctr, lat =  pts_covid$lat_ctr,
-                       radius = ~ (covid_cumu_scaled),
-                       # color = "#ffca05", fill = "#ffca05",
-                       color = "#a65628", fill = "#a65628",
-                       fillOpacity = 0.8,
-                       popup = htmlEscape(pts_covid$txt_cov)) %>%
-      addLegendCustom("bottomleft", colors = "#a65628",
-                      sizes = 15, labels = covid_legend,
-                      shapes = "circle", borders = "#a65628",
-                      opacity = 0.96) %>%
-      addLegend("bottomleft", pal = map_pal, values = ~ delta,
-                opacity = 0.8, labFormat = labelFormat(between = " to "),
-                title = "% Change")
     
     return(mymap)
-  })
+  }, ignoreNULL = F)
   
   
+
   
-  output$out_map_snapshot <- renderLeaflet({get_mymap()})
+  output$out_map_snapshot <- renderLeaflet({ 
+    mymap <- get_mymap()
+    if(is.null(mymap)) {
+      shinyalert(text = "Oops... the number of months in selected pandemic period is not the same as in the baseline comparison period. Please change accordingly.", type = "warning")
+    } 
+    return(mymap) })
   
   
   ### Malaria snapshot: map for mobility -------------------------------------------
   
-  get_mobilitymap <- reactive({
+  get_mobilitymap <- eventReactive(input$goplot_snap, {
     
-    m0 <- which(month.abb %in% input$in_yr0m0_snap)
-    mf <- which(month.abb %in% input$in_yr0mf_snap)
+    ttp <- as.Date(paste(format(input$ttpand_snap, "%Y"), "-", format(input$ttpand_snap, "%m"), "-01", sep = ""))
+    ttcov <- seq(ttp[1], ttp[2], by = "1 month")
     
     # data frame and shapefile selection (whether country-level or subnational-level)
     if (input$in_region_snapshot %in% region_list) {
@@ -364,7 +430,7 @@ else{
     
     mobdat <- filter_region_snap(mobdat, input$in_region_snapshot, region_list_all, regions_nofilter) %>%
       ungroup() %>%
-      filter((month >= m0) & (month <=  mf) & (year == 2020)) %>%
+      filter(date %in% ttcov) %>%
       select(-c("date", "month", "year")) %>%
       group_by(country, admin_level_1) %>%
       summarise_all(mean, na.rm = TRUE) %>%
@@ -373,7 +439,7 @@ else{
     
     covdat <- filter_region_snap(covdat, input$in_region_snapshot, region_list_all, regions_nofilter) %>%
       ungroup() %>%
-      filter((variable %in% covid_str) & (month >= m0) & (month <= mf) & (year == 2020)) %>%
+      filter((variable %in% covid_str) & (date %in% ttcov)) %>%
       filter(count_type %in% input$in_yaxs_snap) %>%
       select(-c(contains("group"), "count_type", "info", "info_txt")) %>%
       distinct()
@@ -454,7 +520,7 @@ else{
                 title = "Mean % change")
     
     return(cmmap)
-  })
+  }, ignoreNULL = FALSE)
 
   
   output$out_mobilitymap_snapshot <- renderLeaflet(get_mobilitymap())
@@ -462,166 +528,223 @@ else{
   
 
   ### Multi-country indicator ranking barplot ----------------------------------------
-
-  output$out_malranking_snapshot <- renderPlot({
-
-    xbar0 <- filter_region_snap(xctry, input$in_region_snapshot, region_list, regions) %>%
-      filter(count_type %in% input$in_yaxs_snap)
-
-    xbar <- NULL
-    for (i in mal_vars) {
-      xi <-  get_shpdat_snap(xbar0, i, s0, input$in_yr0_snap, input$in_yr0m0_snap, input$in_yr0mf_snap, "covid_cases") %>%
-        as.data.frame() %>%
-        mutate(delta_sign = if_else(delta > 0, "positive", "negative"),
-               delta_order = order(delta)) %>%
-        filter(!(is.na(delta)))
-      xbar <- rbind(xbar, xi)
-
+  
+  get_barplot_multictry <- eventReactive(input$goplot_snap, {
+    
+    if ( (input$in_ltm_or_yr_snap %in% "Select a date range") & (!check_nmonth(input$ttpand_snap, input$ttcomp_snap)) ) {
+      
+      ggbar0 <- NULL
+      
+    } else {
+      
+      xbar0 <- filter_region_snap(xctry, input$in_region_snapshot, region_list, regions) %>%
+        filter(count_type %in% input$in_yaxs_snap)
+      
+      xbar <- NULL
+      for (i in mal_vars) {
+        xi <-  get_shpdat_snap(xbar0, i, s0, input$ttcomp_snap, input$ttpand_snap, "covid_cases") %>%
+          as.data.frame() %>%
+          mutate(delta_sign = if_else(delta > 0, "positive", "negative"),
+                 delta_order = order(delta)) %>%
+          filter(!(is.na(delta)))
+        xbar <- rbind(xbar, xi)
+        
+      }
+      
+      xbar <- xbar %>%
+        mutate(variable = factor(variable, levels = mal_vars,
+                                 labels = as.vector(indicator_labels))) %>%
+        arrange(variable) %>%
+        mutate(delta_order = sprintf("%03i", frank(., variable, -delta, ties.method = "first")))
+      
+      rank_order <- setNames(as.character(xbar$country), xbar$delta_order)
+      
+      
+      ggbar0 <- ggplot(xbar, aes(x = delta_order, y = delta, fill = delta_sign)) +
+        geom_hline(yintercept = 0) + geom_col() +
+        coord_flip() +
+        theme_few(12) + xlab("") + ylab("% Change") +
+        facet_wrap(~variable, scales = "free", drop = TRUE, nrow = 1) +
+        scale_x_discrete(labels = rank_order) +
+        scale_fill_manual(values = snap_bar_clr) +
+        theme(legend.position = "none")
+      
     }
+    
+    
+    
+    return(ggbar0)
+    
+  }, ignoreNULL = FALSE)
 
-    xbar <- xbar %>%
-      mutate(variable = factor(variable, levels = mal_vars,
-                               labels = as.vector(indicator_labels))) %>%
-      arrange(variable) %>%
-      mutate(delta_order = sprintf("%03i", frank(., variable, -delta, ties.method = "first")))
-
-    rank_order <- setNames(as.character(xbar$country), xbar$delta_order)
-
-
-    ggbar0 <- ggplot(xbar, aes(x = delta_order, y = delta, fill = delta_sign)) +
-      geom_hline(yintercept = 0) + geom_col() +
-      coord_flip() +
-      theme_few(12) + xlab("") + ylab("% Change") +
-      facet_wrap(~variable, scales = "free", drop = TRUE, nrow = 1) +
-      scale_x_discrete(labels = rank_order) +
-      scale_fill_manual(values = snap_bar_clr) +
-      theme(legend.position = "none")
-
-    print(ggbar0)
-
-  })
+  
+  output$out_malranking_snapshot <- renderPlot({print(get_barplot_multictry())})
 
 
   ### One country national-level indicator plot -------------------------------------
 
-  output$out_adm0indicator_snapshot <- renderPlot({
+  get_indi_natl_bar_snap <- eventReactive(input$goplot_snap, {
     
-    if (input$in_region_snapshot %in% region_list) {
+    if ( (input$in_ltm_or_yr_snap %in% "Select a date range") & (!check_nmonth(input$ttpand_snap, input$ttcomp_snap)) ) {
       
-      return(NULL)
+      ggbar1 <- NULL
       
     } else {
       
-      xbar1 <- filter_region_snap(xctry, input$in_region_snapshot, region_list, regions) %>%
-        filter(count_type %in% input$in_yaxs_snap)
-      xb1 <- data.frame()
-      
-      for (i in mal_vars) {
-        bi <- as.data.frame(get_shpdat_snap(xbar1, i, s0, input$in_yr0_snap,
-                                            input$in_yr0m0_snap, input$in_yr0mf_snap, "covid_cases"))
-        if (nrow(bi) > 0) {
-          bi$variable <- i
-          xb1 <- rbind(xb1, bi)
-        }
-      }
-      
-      if (nrow(xb1) > 0) {
-        xb1 <- xb1 %>%
-          mutate(var_label = factor(variable, levels = mal_vars,
-                                    labels = as.vector(indicator_labels)))
+      if (input$in_region_snapshot %in% region_list) {
         
-        vars_order <- rev(xb1$var_label[order(xb1$delta)])
-        xb1 <- xb1 %>%
-          mutate(delta_sign = if_else(delta > 0, "positive", "negative"),
-                 var_label = factor(var_label, levels = vars_order),
-                 delta = delta/100)
-        
-        ggbar1 <- ggplot(xb1, aes(x = var_label, y = delta)) +
-          geom_bar(aes(fill = delta_sign), stat = "identity") +
-          coord_flip() +
-          theme_few(12) +
-          scale_fill_manual(values = snap_bar_clr, drop = FALSE) +
-          scale_y_continuous(labels = percent) +
-          xlab("") + ylab("Percentage change") +
-          theme(legend.position = "none")
+        return(NULL)
         
       } else {
         
-        ggbar1 <- ggplot(data = data.frame(x = c(0,1), y = c(0,1)), aes(x = x, y = y)) +
-          geom_text(aes(x = 0.5, y = 0.5, label = "Data unavailable")) +
-          theme_few(12) + xlab("") + ylab("")
-      }
+        xbar1 <- filter_region_snap(xctry, input$in_region_snapshot, region_list, regions) %>%
+          filter(count_type %in% input$in_yaxs_snap)
+        xb1 <- data.frame()
+        
+        for (i in mal_vars) {
+          bi <- as.data.frame(get_shpdat_snap(xbar1, i, s0, input$ttcomp_snap, input$ttpand_snap, "covid_cases"))
+          if (nrow(bi) > 0) {
+            bi$variable <- i
+            xb1 <- rbind(xb1, bi)
+          }
+        }
+        
+        if (nrow(xb1) > 0) {
+          xb1 <- xb1 %>%
+            mutate(var_label = factor(variable, levels = mal_vars,
+                                      labels = as.vector(indicator_labels)))
+          
+          vars_order <- rev(xb1$var_label[order(xb1$delta)])
+          xb1 <- xb1 %>%
+            mutate(delta_sign = if_else(delta > 0, "positive", "negative"),
+                   var_label = factor(var_label, levels = vars_order),
+                   delta = delta/100)
+          
+          xminval <- (ceiling(10 * max(abs(xb1$delta))) / 10) + 0.1
+          xxlim <- c(-xminval, xminval)
+          
+          ggbar1 <- ggplot(xb1, aes(x = var_label, y = delta)) +
+            geom_bar(aes(fill = delta_sign), stat = "identity") +
+            geom_hline(yintercept = 0) +
+            geom_text(aes(label = label_percent(accuracy = 0.1)(delta)),
+                      hjust = "inward", color = "black") +
+            coord_flip() +
+            theme_few(12) +
+            scale_fill_manual(values = snap_bar_clr, drop = FALSE) +
+            scale_y_continuous(labels = percent, limits = xxlim) +
+            xlab("") + ylab("Percentage change") +
+            theme(legend.position = "none")
+          
+        } else {
+          
+          ggbar1 <- ggplot(data = data.frame(x = c(0,1), y = c(0,1)), aes(x = x, y = y)) +
+            geom_text(aes(x = 0.5, y = 0.5, label = "Data unavailable")) +
+            theme_few(12) + xlab("") + ylab("")
+        }
       
-      print(ggbar1)
     }
-  })
+     }
+    
+    return(ggbar1)
+    
+  }, ignoreNULL = FALSE)
+  
+  
+  output$out_adm0indicator_snapshot <- renderPlot({ print(get_indi_natl_bar_snap())  })
 
 
   ### One country national-level reporting rate plot --------------------------------
 
-  output$out_adm0reporting_snapshot <- renderPlot({
-    
-    gg_rr <- get_rrplot_snap(dat = xctry, m0 = input$in_yr0m0_snap, mf = input$in_yr0mf_snap,
-                             yr0 = input$in_yr0_snap, region = input$in_region_snapshot, 
-                             value_type = input$in_yaxs_snap)
-
-    print(gg_rr)
-
-  })
+  
+  get_rrplot_subnatl <- eventReactive(input$goplot_snap, {
+    if ( (input$in_ltm_or_yr_snap %in% "Select a date range") & (!check_nmonth(input$ttpand_snap, input$ttcomp_snap)) ) {
+      gg_rr <- NULL
+    } else {
+      gg_rr <- get_rrplot_snap(dat = xctry, input$ttcomp_snap, input$ttpand_snap, 
+                               region = input$in_region_snapshot, value_type = input$in_yaxs_snap)
+    }
+    return(gg_rr)
+  }, ignoreNULL = FALSE)
+  
+  
+  output$out_adm0reporting_snapshot <- renderPlot({  print(get_rrplot_subnatl()) })
   
   
   ### One country national-level mobility bar plot -----------------------------------
   
-  output$out_adm0mobility_snapshot <- renderPlot({
-    gg_mob <- get_mobplot_snap(dat = xmob_long, m0 = input$in_yr0m0_snap, mf = input$in_yr0mf_snap,
-                               yrf = 2020, region = input$in_region_snapshot)
-    print(gg_mob)
-  })
+  get_mobbar_snap <- eventReactive(input$goplot_snap, {
+    if ( (input$in_ltm_or_yr_snap %in% "Select a date range") & (!check_nmonth(input$ttpand_snap, input$ttcomp_snap)) ) {
+      gg_mob <- NULL
+    } else {
+      gg_mob <- get_mobplot_snap(dat = xmob_long, input$ttpand_snap, region = input$in_region_snapshot)
+    }
+    return(gg_mob)
+  }, ignoreNULL = FALSE)
+  
+  
+  output$out_adm0mobility_snapshot <- renderPlot({print(get_mobbar_snap())})
   
 
 
 
   ### Subnational snapshot map ----------------------------------
 
-
-  output$out_adm1malranking_snapshot <- renderPlot({
-
-    xbar1 <- filter_region_snap(xprov, input$in_region_snapshot, region_list, regions) %>% # this may be the source of admin 1 errors 
-      filter(count_type %in% input$in_yaxs_snap)
-
-    xb1 <- NULL
-    for (i in mal_vars) {
-      covid_str <- if_else(i %in% "malaria_deaths", "covid_deaths", "covid_cases")
-      x1i <-  get_shpdat_snap(xbar1, i, s1, input$in_yr0_snap, input$in_yr0m0_snap, input$in_yr0mf_snap, covid_str) %>%
-        as.data.frame() %>%
-        mutate(delta_sign = if_else(delta > 0, "positive", "negative"),
-               delta_order = order(delta)) %>%
-        filter(!(is.na(delta)))
-      xb1 <- rbind(xb1, x1i)
+  get_barplot_1ctry <- eventReactive(input$goplot_snap, {
+    
+    if ( (input$in_ltm_or_yr_snap %in% "Select a date range") & (!check_nmonth(input$ttpand_snap, input$ttcomp_snap)) ) {
+      ggbar1 <- NULL
+      
+    } else {
+      xbar1 <- filter_region_snap(xprov, input$in_region_snapshot, region_list, regions) %>% # this may be the source of admin 1 errors 
+        filter(count_type %in% input$in_yaxs_snap)
+      
+      xb1 <- NULL
+      for (i in mal_vars) {
+        covid_str <- if_else(i %in% "malaria_deaths", "covid_deaths", "covid_cases")
+        x1i <-  get_shpdat_snap(xbar1, i, s1, input$ttcomp_snap, input$ttpand_snap, covid_str) %>%
+          as.data.frame() %>%
+          mutate(delta_sign = if_else(delta > 0, "positive", "negative"),
+                 delta_order = order(delta)) %>%
+          filter(!(is.na(delta)))
+        xb1 <- rbind(xb1, x1i)
+      }
+      
+      xb1 <- xb1 %>%
+        mutate(variable = factor(variable, levels = mal_vars,
+                                 labels = as.vector(indicator_labels))) %>%
+        arrange(variable) %>%
+        mutate(delta_order = sprintf("%03i", frank(., variable, -delta, ties.method = "first")),
+               delta = delta/100,
+               delta_pos = if_else(delta < 0, 0.1, - 0.1)) 
+      
+      rank_order <- setNames(as.character(xb1$admin_level_1), xb1$delta_order)
+      
+      if(nrow(xb1) > 0){
+        ggbar1 <- ggplot(xb1, aes(x = delta_order, y = delta, fill = delta_sign)) +
+          geom_hline(yintercept = 0) + geom_col() +
+          # geom_text(aes(label = label_percent(accuracy = 0.1)(delta), y = delta_pos, x = delta_order),
+          #           hjust = "inward", color = "black") +
+          coord_flip() +
+          theme_few(12) + xlab("") + ylab("Percentage change") +
+          facet_wrap(~variable, scales = "free", drop = FALSE, nrow = 1) +
+          scale_x_discrete(labels = rank_order) +
+          scale_y_continuous(labels = percent) +
+          scale_fill_manual(values = snap_bar_clr) +
+          theme(legend.position = "none") +
+          theme(axis.text.x = element_text(angle = 45, hjust = 1))
+        
+      } else {
+        ggbar1 <- ggplot(data = data.frame(x = c(0,1), y = c(0,1)), aes(x = x, y = y)) +
+          geom_text(aes(x = 0.5, y = 0.5, label = "Data is unavailable")) +
+          theme_few(12) + xlab("") + ylab("")
+      }
     }
-
-    xb1 <- xb1 %>%
-      mutate(variable = factor(variable, levels = mal_vars,
-                               labels = as.vector(indicator_labels))) %>%
-      arrange(variable) %>%
-      mutate(delta_order = sprintf("%03i", frank(., variable, -delta, ties.method = "first")),
-             delta = delta/100)
-
-    rank_order <- setNames(as.character(xb1$admin_level_1), xb1$delta_order)
-
-    ggbar1 <- ggplot(xb1, aes(x = delta_order, y = delta, fill = delta_sign)) +
-      geom_hline(yintercept = 0) + geom_col() +
-      coord_flip() +
-      theme_few(12) + xlab("") + ylab("Percentage change") +
-      facet_wrap(~variable, scales = "free", drop = TRUE, nrow = 1) +
-      scale_x_discrete(labels = rank_order) +
-      scale_y_continuous(labels = percent) +
-      scale_fill_manual(values = snap_bar_clr) +
-      theme(legend.position = "none")
-
-    print(ggbar1)
-
-  })
+    return(ggbar1)
+  }, ignoreNULL = FALSE)
+  
+  
+  
+  output$out_adm1malranking_snapshot <- renderPlot({ print(get_barplot_1ctry()) })
   
   
   
@@ -709,6 +832,7 @@ else{
   })
   
   
+  
   ### Malaria percent ts: Plot title --------------------------------------------
   
   output$out_plottitle_pcnt <- renderUI({
@@ -723,7 +847,7 @@ else{
   
   ### Malaria percent ts: data selector --------------------------------------------
   
-  get_dat_pcnt_ts <- reactive({
+  get_dat_pcnt_ts <- eventReactive(input$goplot_pcnt, {
     
     if (input$in_aggr_pcnt %in% "admin0") {
       p0 <- extract_countries(xctry, input$in_region_pcnt, regions)
@@ -748,11 +872,14 @@ else{
       vv <- input$in_indicator_pcnt
     }
     
+    ttf <- as.Date(c("2020-01-01", paste(format(Sys.Date(), "%Y-%m"), "-01", sep = "")))
+    tt0 <- as.Date(paste(input$in_yr0_pcnt, "-01-01", sep = ""))
     
     # loop around user-selected variable and calculate the difference
     pdat <- data.frame()
     for (j in vv) {
-      pj <- get_difference(dat = pdat0, var_name = j, m0 = 1, mf = mo_now, yr0 = input$in_yr0_pcnt, as_total = FALSE)
+      # print(input$ttpand_pcnt)
+      pj <- get_difference_ts(dat = pdat0, var_name = j, tt0 = tt0, ttf = ttf)
       if (nrow(pj) > 0) {
         pj$variable <- indicator_labels[[j]]
         pj <- pj %>% 
@@ -791,7 +918,7 @@ else{
         mutate(cov_unit = if_else(input$in_epiunit_pcnt %in% "value", "cases",
                                   if_else(variable %in% "covid_deaths", "/1 mil. pop.", "/1,000 pop."))) %>%
         mutate(txt_cov = paste(info_txt, " (", month.abb[month], " ", year, "): ", prettyNum(value), " ", cov_unit, sep = "")) %>%
-        select(-c(count_type, linegroup, mygroup, combogroup, info, info_txt, cov_unit)) %>%
+        dplyr::select(-c(count_type, linegroup, mygroup, combogroup, info, info_txt, cov_unit)) %>%
         rename("covid_variable" = "variable", "covid_value" = "value")
       if ("admin_level_1" %in% colnames(pdat)) {
         col_core <- c("country", "admin_level_1") 
@@ -810,11 +937,11 @@ else{
       # Scaling factor for covid to enable double axis
       scale_factor <- max_delta / max_cov
       
-      pout <- merge(pdat, ucov, by = vars2merge, all = TRUE) %>%
+      pout <- merge(pdat %>% select(-c(date.x, date.y)), ucov, by = vars2merge, all = TRUE) %>%
         mutate(yscl = scale_factor ) %>%
         mutate(covid_scaled = covid_value * yscl) %>%
-        mutate(txt_pcnt = paste(boxgroup, " (", month.abb[month], " ", year, "): ", ifelse(delta > 0, "+" , ""),
-                                percent(delta, accuracy = 0.1), " change from ", input$in_yr0_pcnt, sep = "")) 
+        mutate(txt_pcnt = paste(boxgroup, " (", paste(format(input$ttpand_pcnt, "%b %Y"), collapse = " - "), "): ", ifelse(delta > 0, "+" , ""),
+                                percent(delta, accuracy = 0.1), " change from ", paste(format(input$ttcomp_pcnt, "%b %Y"), collapse = " - "), sep = "")) 
     }
     
     
@@ -825,6 +952,12 @@ else{
     # Add reporting rate and mobility data if selected
     
     if(!is.null(pout)) {
+      ttfseq <- seq(ttf[1], ttf[2], by = "1 month")
+      if(input$in_yr0_pcnt %in% "Historical Mean") {
+        tt0seq <- NULL
+      } else {
+        tt0seq <- seq(tt0[1], length.out = 12, by = "1 month")
+      }
       if (is.null(input$in_overlay_pcnt)) {
         # In case reporting rate/mobility previously selected, remove this selection
         pout <- pout %>% filter(str_detect(variable, ("reports_rate|mob_"), negate = TRUE)) 
@@ -842,14 +975,14 @@ else{
               if ("admin_level_1" %in% colnames(pout)) {
                 pvul <- subset(pvul, !(admin_level_1 %in% ""))
               } else {
-                pvul <- subset(pvul, admin_level_1 %in% "") %>% select(-admin_level_1)
+                pvul <- subset(pvul, admin_level_1 %in% "") %>% dplyr::select(-admin_level_1)
               }
               pbox <- unique(pout$boxgroup)
               p2add <- pvul %>% 
                 rename(value.x = value, txt_pcnt = info_txt, colourgroup = var_label) %>%
                 mutate(mygroup = factor(year), value.x = value.x/100, value.y = value.x,
-                       boxgroup = pbox[1]) %>%
-                select(-c(date))
+                       boxgroup = pbox[1], date.x = date, date.y = date) %>%
+                dplyr::select(-c(date))
               
               if (length(unique(pout$boxgroup)) > 1) {
                 for (i in pbox[-1]) {
@@ -864,11 +997,24 @@ else{
               if (any(c("allcause_cases", "confirmed_cases", "anc1_visit") %in% vv)) {
                 rvv <- str_extract(vv, "confirmed_cases|allcause_cases|anc1_visit") %>%
                   paste("reports_rate__", ., sep = "")
-                rry0 <- ifelse(input$in_yr0_pcnt %in% "Historical Mean", NULL, input$in_yr0_pcnt)
-                p2add <- subset(pdat0, (variable %in% rvv) & (year %in% c(2020, rry0))) %>%
-                  mutate(value = as.numeric(as.character(info))) %>%
+                if(is.null(tt0seq)) {
+                  p2add_t0 <- NULL
+                } else {
+                  p2add_t0_tmp1 <- subset(pdat0, (variable %in% rvv) & (date %in% tt0seq))  %>%
+                    mutate(date = as.Date(paste("2020-", month, "-01", sep = "")))
+                  tt0seq_cy21 <- tt0seq[1:(max(as.numeric(format(max(ttfseq), "%m"))))]
+                  p2add_t0_tmp2 <- subset(pdat0, (variable %in% rvv) & (date %in% tt0seq_cy21)) %>%
+                    mutate(date = as.Date(paste("2021-", month, "-01", sep = "")))
+                  p2add_t0 <- rbind(p2add_t0_tmp1, p2add_t0_tmp2) %>%
+                    mutate(mygroup = "baseline")
+                }
+                rrt0 <- ifelse(input$in_yr0_pcnt %in% "Historical Mean", NULL, input$in_yr0_pcnt)
+                p2add <- subset(pdat0, (variable %in% rvv) & (date %in% ttfseq)) %>%
+                  mutate(mygroup = "current") %>%
+                  bind_rows(., p2add_t0) %>%
+                  mutate(value = as.numeric(as.character(info)), date.x = date, date.y = date) %>%
                   rename(value.x = value, count_type.x = count_type, txt_pcnt = info_txt) %>%
-                  select(-c(date, linegroup, combogroup, info))
+                  dplyr::select(-c(date, linegroup, combogroup, info))
                 pout <- bind_rows(pout, p2add)
               } else {
                 next
@@ -886,7 +1032,7 @@ else{
     
     return(pout)
     
-  })
+  }, ignoreNULL = FALSE)
   
   
   ### Malaria percent ts: plot -----------------------------------------------------
@@ -1465,50 +1611,79 @@ observeEvent(input$in_splevel_osrc, {
   ## Plot COVID - Other Sources ----------------------------------------------------------
 
   
-  # # User-level filtering - Malaria vars - TEMPORARILY removing user-level filtering, since malaria variable aren't in play for 2020 release
-  # observeEvent(input$ctry, ignoreNULL = FALSE, {
-  #   if (input$ctry %in% user_filtered_countries) {
-  #     updateCheckboxGroupInput(session, inputId = "in_indicator_inctry", 
-  #                        label = "Select indicators to include:",
-  #                        choices = c("Population: 65 yrs and older (%)"="pop_perc_65_years_and_over",
-  #                                    "Population: 45 - 64 yrs (%)"="pop_perc_45_to_64_years"  , 
-  #                                    "Population: 25 - 44 yrs"="pop_perc_25_to_44_years",
-  #                                    "Population: 15 - 24 years (%)"="pop_perc_15_to_24_years",
-  #                                    "Population: 5 - 14 yrs (%)"="pop_perc_5_to_14_years",
-  #                                    "Population 0 - 4 yrs (%)"="pop_perc_0_to_4_years",
-  #                                    "Mobility: Grocery & Pharmacy"="mob_grocery_and_pharmacy",
-  #                                    "Mobility: Parks"="mob_parks",
-  #                                    "Mobility: Residential"="mob_residential",
-  #                                    "Mobility: Retail & Recreation"="mob_retail_and_recreation",
-  #                                    "Mobility: Transit Stations"="mob_transit_stations",
-  #                                    "Mobility: Workplaces"="mob_workplaces",
-  #                                    "Handwashing: Population living in households with access to soap and water (%)"="population_living_in_households_with_a_basic_handwashing_facility_with_soap_and_water_available",
-  #                                    "Handwashing: Population living in households where a place for handwashing was observed (%)"="population_with_a_place_for_handwashing_was_observed",
-  #                                    "Malaria: Number of health workers"="mal_health_workers",
-  #                                    "Malaria: Annual new consultations (fever)"="mal_new_consultation_all_cause"),
-  #                        selected = "pop_perc_65_years_and_over")
-  #     
-  #   } 
-  #   else {
-  #     updateCheckboxGroupInput(session, inputId = "in_indicator_inctry", 
-  #                              label = "Select indicators to include:",
-  #                              choices = c("Population: 65 yrs and older (%)"="pop_perc_65_years_and_over",
-  #                                          "Population: 45 - 64 yrs (%)"="pop_perc_45_to_64_years"  , 
-  #                                          "Population: 25 - 44 yrs"="pop_perc_25_to_44_years",
-  #                                          "Population: 15 - 24 years (%)"="pop_perc_15_to_24_years",
-  #                                          "Population: 5 - 14 yrs (%)"="pop_perc_5_to_14_years",
-  #                                          "Population 0 - 4 yrs (%)"="pop_perc_0_to_4_years",
-  #                                          "Mobility: Grocery & Pharmacy"="mob_grocery_and_pharmacy",
-  #                                          "Mobility: Parks"="mob_parks",
-  #                                          "Mobility: Residential"="mob_residential",
-  #                                          "Mobility: Retail & Recreation"="mob_retail_and_recreation",
-  #                                          "Mobility: Transit Stations"="mob_transit_stations",
-  #                                          "Mobility: Workplaces"="mob_workplaces",
-  #                                          "Handwashing: Population living in households with access to soap and water (%)"="population_living_in_households_with_a_basic_handwashing_facility_with_soap_and_water_available",
-  #                                          "Handwashing: Population living in households where a place for handwashing was observed (%)"="population_with_a_place_for_handwashing_was_observed"),
-  #                              selected = "pop_perc_65_years_and_over")
-  #   }
-  # })
+  # User-level filtering - Malaria vars
+  observeEvent(input$in_ctry_covid_inctry, ignoreNULL = FALSE, {
+    if (input$in_ctry_covid_inctry %in% user_filtered_countries) {
+      if(input$in_ctry_covid_inctry %in% custom_mal_ctry_18){
+      updateCheckboxGroupInput(session, inputId = "in_indicator_inctry_custom",
+                         label = "Select indicators to include:",
+                         choices = c("Population: 65 yrs and older (%)"="pop_perc_65_years_and_over",
+                                     "Population: 45 - 64 yrs (%)"="pop_perc_45_to_64_years"  , 
+                                     "Population: 25 - 44 yrs"="pop_perc_25_to_44_years",
+                                     "Population: 15 - 24 years (%)"="pop_perc_15_to_24_years",
+                                     "Population: 5 - 14 yrs (%)"="pop_perc_5_to_14_years",
+                                     "Population 0 - 4 yrs (%)"="pop_perc_0_to_4_years",
+                                     "Mobility: Grocery & Pharmacy"="mob_grocery_and_pharmacy",
+                                     "Mobility: Parks"="mob_parks",
+                                     "Mobility: Residential"="mob_residential",
+                                     "Mobility: Retail & Recreation"="mob_retail_and_recreation",
+                                     "Mobility: Transit Stations"="mob_transit_stations",
+                                     "Mobility: Workplaces"="mob_workplaces",
+                                     "Handwashing: Population living in households with access to soap and water (%)"="population_living_in_households_with_a_basic_handwashing_facility_with_soap_and_water_available",
+                                     "Handwashing: Population living in households where a place for handwashing was observed (%)"="population_with_a_place_for_handwashing_was_observed",
+                                     "Malaria: Health workers per 100K population (2020)"="mal_health_workers_20",
+                                     "Malaria: Health workers per 100K population (2018)"="mal_health_workers_cont",
+                                     "Malaria: Annual new consultations (fever) per 1K population (2020)"="mal_new_consultation_all_cause_20",
+                                     "Malaria: Annual new consultations (fever) per 1K population (2018)"="mal_new_consultation_all_cause_cont"
+                         ),
+                         selected = "pop_perc_65_years_and_over")
+      }
+      else{
+        updateCheckboxGroupInput(session, inputId = "in_indicator_inctry_custom",
+                                 label = "Select indicators to include:",
+                                 choices = c("Population: 65 yrs and older (%)"="pop_perc_65_years_and_over",
+                                             "Population: 45 - 64 yrs (%)"="pop_perc_45_to_64_years"  , 
+                                             "Population: 25 - 44 yrs"="pop_perc_25_to_44_years",
+                                             "Population: 15 - 24 years (%)"="pop_perc_15_to_24_years",
+                                             "Population: 5 - 14 yrs (%)"="pop_perc_5_to_14_years",
+                                             "Population 0 - 4 yrs (%)"="pop_perc_0_to_4_years",
+                                             "Mobility: Grocery & Pharmacy"="mob_grocery_and_pharmacy",
+                                             "Mobility: Parks"="mob_parks",
+                                             "Mobility: Residential"="mob_residential",
+                                             "Mobility: Retail & Recreation"="mob_retail_and_recreation",
+                                             "Mobility: Transit Stations"="mob_transit_stations",
+                                             "Mobility: Workplaces"="mob_workplaces",
+                                             "Handwashing: Population living in households with access to soap and water (%)"="population_living_in_households_with_a_basic_handwashing_facility_with_soap_and_water_available",
+                                             "Handwashing: Population living in households where a place for handwashing was observed (%)"="population_with_a_place_for_handwashing_was_observed",
+                                             "Malaria: Health workers per 100K population (2020)"="mal_health_workers_20",
+                                             "Malaria: Health workers per 100K population (2019)"="mal_health_workers_cont",
+                                             "Malaria: Annual new consultations (fever) per 1K population (2020)"="mal_new_consultation_all_cause_20",
+                                             "Malaria: Annual new consultations (fever) per 1K population (2019)"="mal_new_consultation_all_cause_cont"
+                                 ),
+                                 selected = "pop_perc_65_years_and_over")
+      }
+
+    }
+    else {
+      updateCheckboxGroupInput(session, inputId = "in_indicator_inctry_custom",
+                               label = "Select indicators to include:",
+                               choices = c("Population: 65 yrs and older (%)"="pop_perc_65_years_and_over",
+                                           "Population: 45 - 64 yrs (%)"="pop_perc_45_to_64_years"  ,
+                                           "Population: 25 - 44 yrs"="pop_perc_25_to_44_years",
+                                           "Population: 15 - 24 years (%)"="pop_perc_15_to_24_years",
+                                           "Population: 5 - 14 yrs (%)"="pop_perc_5_to_14_years",
+                                           "Population 0 - 4 yrs (%)"="pop_perc_0_to_4_years",
+                                           "Mobility: Grocery & Pharmacy"="mob_grocery_and_pharmacy",
+                                           "Mobility: Parks"="mob_parks",
+                                           "Mobility: Residential"="mob_residential",
+                                           "Mobility: Retail & Recreation"="mob_retail_and_recreation",
+                                           "Mobility: Transit Stations"="mob_transit_stations",
+                                           "Mobility: Workplaces"="mob_workplaces",
+                                           "Handwashing: Population living in households with access to soap and water (%)"="population_living_in_households_with_a_basic_handwashing_facility_with_soap_and_water_available",
+                                           "Handwashing: Population living in households where a place for handwashing was observed (%)"="population_with_a_place_for_handwashing_was_observed"),
+                               selected = "pop_perc_65_years_and_over")
+    }
+  })
   
   
   # note: table is  missing Cambodia, Cote D'Ivoire, Malawi, Myanmar and Thailand completely
@@ -1533,7 +1708,7 @@ observeEvent(input$in_splevel_osrc, {
       mutate(ccvi = "pal") %>%
       pivot_wider(names_from = "ccvi",
                   values_from ="score") %>%
-      select(country, admin_level_1, pal)
+      dplyr::select(country, admin_level_1, pal)
     
     scores_sf <- merge(surgo_scores0, s1, all.y = T, by = c("country", "admin_level_1"))
     scores_sf <-  merge(surgo_pal, scores_sf, all.y = T, by = c("country", "admin_level_1"))
@@ -1551,7 +1726,11 @@ observeEvent(input$in_splevel_osrc, {
   
   custom_final <- reactive({
     
-    custom0_latest <- custom0_long %>%
+    custom0_long <- unique(custom0_long)
+    custom0_long <- custom0_long %>%
+      ungroup()
+    
+    custom0_latest <- custom0_long_comb %>%
       filter(!is.na(value)) %>%
       group_by(country, admin_level_1, variable) %>%
       slice(which.max(as.Date(date))) %>%
@@ -1567,22 +1746,23 @@ observeEvent(input$in_splevel_osrc, {
       summarize_if(is.numeric, mean, na.rm=T) %>%
       ungroup()
     
-    # custom0_cont <- data.frame(lapply(custom0_cont, function(x) {gsub("NaN", NA, x)})) # setting NaNs to NA
-    # custom0_cont[,-c(1:2)] <- data.frame(lapply(custom0_cont[,-c(1:2)], function(x) as.numeric(as.character(x))))
+    custom0_cont[,-c(1:2)] <- data.frame(lapply(custom0_cont[,-c(1:2)], function(x) as.numeric(as.character(x))))
+    custom0_cont <- data.frame(lapply(custom0_cont, function(x) {gsub("NaN", NA, x)})) # setting NaNs to NA 
+    custom0_cont[,-c(1:2)] <- data.frame(lapply(custom0_cont[,-c(1:2)], function(x) as.numeric(as.character(x))))
     
     # custom0_cont_perc <- custom0_cont %>%
-    #   select(-starts_with("households_")) %>%# removing hh-level handwashing data 
+    #   dplyr::select(-starts_with("households_")) %>%# removing hh-level handwashing data 
     #   summarize_if(is.numeric, percent_rank) %>%
     #   mutate_if(is.numeric, round, digits=3) 
     
     custom0_cont_perc <- custom0_cont %>%
-      select(-starts_with("households_")) %>%# removing hh-level handwashing data 
-      # select(country, starts_with("theme"), starts_with("overall")) %>%
+      dplyr::select(-starts_with("households_")) %>%# removing hh-level handwashing data 
+      # dplyr::select(country, starts_with("theme"), starts_with("overall")) %>%
       group_by(country) %>%
       summarize_if(is.numeric, percent_rank) %>%
       # mutate_if(is.numeric, round, digits=3) %>%
       ungroup() %>%
-      select(-country)
+      dplyr::select(-country)
     
     
     custom0_cont_theme <- cbind(custom0_cont[,c('country', 'admin_level_1')], custom0_cont_perc) # add back in char vars
@@ -1598,26 +1778,26 @@ observeEvent(input$in_splevel_osrc, {
     }
     
     custom0_cont_theme <- custom0_cont_theme %>%
-      mutate(theme_mal = round(rowMeans(select(., contains("mal_"))),3),
-             theme_mob = round(rowMeans(select(., contains("mob_"))),3),
-             theme_wash = round(rowMeans(select(., contains("washing"))),3),
-             theme_pop = round(rowMeans(select(., contains("pop_"))),3))
+      mutate(theme_mal = round(rowMeans(dplyr::select(., contains("mal_")), na.rm=T),3),
+             theme_mob = round(rowMeans(dplyr::select(., contains("mob_")),na.rm=T),3),
+             theme_wash = round(rowMeans(dplyr::select(., contains("washing")), na.rm=T),3),
+             theme_pop = round(rowMeans(dplyr::select(., contains("pop_")), na.rm=T),3))
     
     custom0_cont_theme <- data.frame(lapply(custom0_cont_theme, function(x) {gsub("NaN", NA, x)})) # setting NaNs to NA
     custom0_cont_theme[,-c(1:2)] <- data.frame(lapply(custom0_cont_theme[,-c(1:2)], function(x) as.numeric(as.character(x))))
     
     custom0_cont_theme <- custom0_cont_theme %>%
-      mutate(overall_custom_score = round(rowMeans(select(., contains("theme_")), na.rm = TRUE),3))
+      mutate(overall_custom_score = round(rowMeans(dplyr::select(., contains("theme_")), na.rm = TRUE),3))
     
     custom0_cont_theme[,-c(1:2)] <- data.frame(lapply(custom0_cont_theme[,-c(1:2)], function(x) as.numeric(as.character(x))))
     
     # custom1 <- custom0_cont_theme %>%
-    #   # select(country, starts_with("theme"), starts_with("overall")) %>%
+    #   # dplyr::select(country, starts_with("theme"), starts_with("overall")) %>%
     #   group_by(country) %>%
     #   summarize_if(is.numeric, percent_rank) %>%
     #   # mutate_if(is.numeric, round, digits=3) %>%
     #   ungroup() %>%
-    #   select(-country)
+    #   dplyr::select(-country)
     
     custom1 <- custom0_cont_theme
     # addings suffixes
@@ -1641,10 +1821,10 @@ observeEvent(input$in_splevel_osrc, {
     custom_tot <- merge(custom0_latest, custom1, by=c("country", "admin_level_1"),all=T)
     
     # custom_tot <- custom_tot %>%
-    #   select(-starts_with("households_", ))
+    #   dplyr::select(-starts_with("households_", ))
     
     custom0_latest <- custom0_latest %>%
-      select(-starts_with("households_", ))
+      dplyr::select(-starts_with("households_", ))
     
     # custom_tot <- data.frame(lapply(custom_tot, function(x) {gsub("NaN", NA, x)})) # setting NaNs to NA
     # custom_tot[,-c(1:2)] <- data.frame(lapply(custom_tot[,-c(1:2)], function(x) as.numeric(as.character(x))))
@@ -1663,7 +1843,7 @@ observeEvent(input$in_splevel_osrc, {
       group_by(country, admin_level_1) %>% 
       filter(date == max(date)) %>%
       mutate(date_max = date) %>%
-      select(country, admin_level_1, date_max)
+      dplyr::select(country, admin_level_1, date_max)
     
     custom_tot <- merge(custom_tot, test, by=c("country", "admin_level_1"), all.x=T)
     custom_tot <- custom_tot %>%
@@ -1673,7 +1853,7 @@ observeEvent(input$in_splevel_osrc, {
     # custom_tot$date_max <- as.Date(as.character(custom_tot$date_max))
     
     custom_final <- custom_tot %>%
-      select(country, admin_level_1, year, date, month, year, starts_with("theme_"), ends_with("_country"))
+      dplyr::select(country, admin_level_1, year, date, month, year, starts_with("theme_"), ends_with("_country"))
     
     
   })
@@ -1779,10 +1959,10 @@ observeEvent(input$in_splevel_osrc, {
     #     mutate(pop = gsub("  :" , " :", pop))
     #   
     #   desc <- testing %>% 
-    #     select(-value, -desc, -month_name) %>%
+    #     dplyr::select(-value, -desc, -month_name) %>%
     #     mutate(variable = paste0(variable, "_desc")) %>%
     #     pivot_wider(names_from = variable, values_from = pop) %>%
-    #     select(-starts_with("overall"), -starts_with("theme"))
+    #     dplyr::select(-starts_with("overall"), -starts_with("theme"))
     #   
     #   desc_long <- desc %>%
     #     group_by(country, admin_level_1, date, month, year) %>%
@@ -1795,7 +1975,7 @@ observeEvent(input$in_splevel_osrc, {
     #   desc_test <- desc_long %>%
     #     filter(!is.na(value)) %>%
     #     group_by(country, admin_level_1, variable) %>%
-    #     select(-c(date, month, year)) %>%
+    #     dplyr::select(-c(date, month, year)) %>%
     #     pivot_wider(names_from = variable, values_from = value)
     #   
     #   custom_final <- custom_final %>%  
@@ -1911,6 +2091,8 @@ observeEvent(input$in_splevel_osrc, {
   output$custom_scores_inctry <- renderLeaflet({
     
       custom_final <-  custom_final()
+      
+      req(input$in_indicator_inctry_custom) # prevent pre-load error message
 
       s1_country <- s1 %>%
         filter(country == input$in_ctry_covid_inctry) # change
@@ -1943,14 +2125,19 @@ observeEvent(input$in_splevel_osrc, {
         mutate(desc = gsub("Mob", "Mobility -", desc)) %>%
         mutate(desc = gsub("Population living" , "Hand-washing - Population living", desc)) %>%
         mutate(desc = gsub("^Mal" , "Malaria -", desc)) %>%
-        mutate(pop = paste0(desc, " : ", '<strong>', value, '</strong>', " (", month_name, " ", year, ")")) %>%
+        mutate(desc = gsub(" 20 $" , "", desc)) %>%
+        mutate(desc = gsub(" cont $" , "", desc)) %>%
+        mutate(desc = gsub("health workers" , "Health workers", desc)) %>%
+        mutate(desc = gsub("new consultation all cause" , "Annual new consultations", desc)) %>%
+        mutate(pop = ifelse(grepl('^Malaria', desc), paste0(desc, " : ", '<strong>', value, '</strong>'), 
+                            paste0(desc, " : ", '<strong>', value, '</strong>', " (", month_name, " ", year, ")"))) %>% # AZ change
         mutate(pop = gsub("  :" , " :", pop))
 
       desc <- testing %>%
-        select(-value, -desc, -month_name) %>%
+        dplyr::select(-value, -desc, -month_name) %>%
         mutate(variable = paste0(variable, "_desc")) %>%
         pivot_wider(names_from = variable, values_from = pop) %>%
-        select(-starts_with("overall"), -starts_with("theme"))
+        dplyr::select(-starts_with("overall"), -starts_with("theme"))
 
       desc_long <- desc %>%
         group_by(country, admin_level_1, date, month, year) %>%
@@ -1963,7 +2150,7 @@ observeEvent(input$in_splevel_osrc, {
       desc_test <- desc_long %>%
         filter(!is.na(value)) %>%
         group_by(country, admin_level_1, variable) %>%
-        select(-c(date, month, year)) %>%
+        dplyr::select(-c(date, month, year)) %>%
         pivot_wider(names_from = variable, values_from = value)
 
       custom_final <- custom_final %>%
@@ -1986,6 +2173,25 @@ observeEvent(input$in_splevel_osrc, {
       }
 
       scores_custom <- merge(custom_final_desc, s1_country, all.y=T, by = c("country", "admin_level_1"))
+      
+      scores_custom <- scores_custom %>%
+        mutate(overall_custom_score_country = round(overall_custom_score_country, 3))  # change
+
+      if(sum(grepl("mal_", vars_1))>0){
+        for (i in 1:length(vars_1)) {
+          scores_custom$test <-  ifelse(is.na(scores_custom[,vars_1[i]]),
+                                        paste0(levels(as.factor(sub("\\ :.*", "", custom_final_desc[,vars_1[i]])))[1],  ' : <strong> NA </strong>'),
+                                        scores_custom[,vars_1[i]])
+
+          scores_custom$test2 <- ifelse(grepl("^mal_", vars_1[i]), ifelse(grepl("_20_", vars_1[i]), " (2020)",
+                                 ifelse(scores_custom$country %in% custom_mal_ctry_18, " (2018)", " (2019)")),
+                                "")
+          
+          scores_custom[,vars_1[i]] <- paste(scores_custom$test, scores_custom$test2)
+          
+        }
+      }
+      
       scores_custom <- scores_custom %>%
         mutate(overall_custom_score_country = round(overall_custom_score_country, 3)) # change
 
@@ -2018,30 +2224,59 @@ observeEvent(input$in_splevel_osrc, {
       }
 
       if(length(unique(sf_custom$overall_custom_score_country)) == 1){
-        sf_custom %>%
-          st_transform(crs = "+init=epsg:4326") %>%
-          leaflet(width = "100%") %>%
-          addMapPane(name = "background", zIndex = 410) %>%
-          addMapPane(name = "polygons", zIndex = 420) %>%
-          addMapPane(name = "labels", zIndex = 430) %>%
-          addProviderTiles(provider = "CartoDB.Positron",
-                           options = pathOptions(pane = "background"))%>%
-          addPolygons(popup= pop,
-                      stroke = TRUE,
-                      weight = .85,
-                      smoothFactor = 0,
-                      color= "lightgray",
-                      opacity = 1,
-                      fillColor = "#FFFFB2",
-                      fillOpacity = 0.65,
-                      options = pathOptions(pane = "polygons")) %>%
-          addLegend("bottomright", pal = pal_test, values = 0:1,
-                    title = "Custom COVID-19<br>Vulnerability Index",
-                    labFormat = function(type, cuts, p) {
-                      paste0(labs)
-                    }, opacity = .7) %>%
-          addProviderTiles(providers$CartoDB.PositronOnlyLabels,
-                           options = pathOptions(pane = "labels"))
+        if(is.na(sf_custom$overall_custom_score_country)){
+          sf_custom %>%
+            st_transform(crs = "+init=epsg:4326") %>%
+            leaflet(width = "100%") %>%
+            addMapPane(name = "background", zIndex = 410) %>%
+            addMapPane(name = "polygons", zIndex = 420) %>%
+            addMapPane(name = "labels", zIndex = 430) %>%
+            addProviderTiles(provider = "CartoDB.Positron",
+                             options = pathOptions(pane = "background"))%>%
+            addPolygons(popup= pop,
+                        stroke = TRUE,
+                        weight = .85,
+                        smoothFactor = 0,
+                        color= "lightgray",
+                        opacity = 1,
+                        fillColor = "darkgray",
+                        fillOpacity = 0.8,
+                        options = pathOptions(pane = "polygons")) %>%
+            addLegend("bottomright", pal = pal_test, values = 0:1,
+                      title = "Custom COVID-19<br>Vulnerability Index",
+                      labFormat = function(type, cuts, p) {
+                        paste0(labs)
+                      }, opacity = .7) %>%
+            addProviderTiles(providers$CartoDB.PositronOnlyLabels,
+                             options = pathOptions(pane = "labels"))
+        } else {
+          sf_custom %>%
+            st_transform(crs = "+init=epsg:4326") %>%
+            leaflet(width = "100%") %>%
+            addMapPane(name = "background", zIndex = 410) %>%
+            addMapPane(name = "polygons", zIndex = 420) %>%
+            addMapPane(name = "labels", zIndex = 430) %>%
+            addProviderTiles(provider = "CartoDB.Positron",
+                             options = pathOptions(pane = "background"))%>%
+            addPolygons(popup= pop,
+                        stroke = TRUE,
+                        weight = .85,
+                        smoothFactor = 0,
+                        color= "lightgray",
+                        opacity = 1,
+                        fillColor = "#FFFFB2",
+                        fillOpacity = 0.65,
+                        options = pathOptions(pane = "polygons")) %>%
+            addLegend("bottomright", pal = pal_test, values = 0:1,
+                      title = "Custom COVID-19<br>Vulnerability Index",
+                      labFormat = function(type, cuts, p) {
+                        paste0(labs)
+                      }, opacity = .7) %>%
+            addProviderTiles(providers$CartoDB.PositronOnlyLabels,
+                             options = pathOptions(pane = "labels"))
+          
+        }
+        
       } else{
         sf_custom %>%
           st_transform(crs = "+init=epsg:4326") %>%

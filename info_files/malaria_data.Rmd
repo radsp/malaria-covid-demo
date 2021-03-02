@@ -21,7 +21,7 @@ Malaria-related indicators are sourced from HMIS as available in M-DIVE via PMI 
 * Malaria deaths
 * First Antenatal care visit (ANC1)
 
-Definition of these indicators can be found in the [Malaria Quarterly Report Data Dictionary dashboard](https://platform.civisanalytics.com/spa/#/reports/68644?fullscreen=true). The test positivity ratio (TPR) is derived by dividing malaria confirmed cases with tested cases. The dashboard also includes visualization of reporting rates for all cause consultations, malaria confirmed cases and ANC 1st visit. This is calculated by dividing reports received with reports expected. 
+Definition of these indicators can be found in M-DIVE's [Malaria Quarterly Report Data Dictionary dashboard](https://platform.civisanalytics.com/spa/#/reports/68644?fullscreen=true). The test positivity ratio (TPR) is derived by dividing malaria confirmed cases with tested cases. The dashboard also includes visualization of reporting rates for all cause consultations, malaria confirmed cases and ANC 1st visit. This is calculated by dividing reports received with reports expected. 
 
 All data in this dashboard are visualized either at national (administrative level 0 / country) or sub-national (administrative level 1 / state or province) level. The malaria-indicated indicators are aggregated to national and sub-national level (from second administrative level aggregation as reported in the PMI QR) by summing data in all administrative areas that fall under the desired national/sub-national level. For TPR, the ratios were computed after aggregating tested cases and malaria confirmed cases to national and sub-national level. 
 

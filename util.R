@@ -183,13 +183,13 @@ get_difference <- function(dat, var_name, m0, mf, yr0, yrf = 2020, as_total) {
         u1 <- u %>% 
           filter(variable %in% var_name) %>%
           filter(date %in% btt) %>%
-          select(-c(ends_with("group"), starts_with("info"), "date", "year", "variable"))
+          dplyr::select(-c(ends_with("group"), starts_with("info"), "date", "year", "variable"))
       } else {
         mm <- c(m0:12, 1:mf)
         u1 <- u %>% 
           filter(stringr::str_detect(variable, "ltm")) %>%
           filter(month %in% mm) %>%
-          select(-c(ends_with("group"), starts_with("info"), "date", "year", "variable")) %>%
+          dplyr::select(-c(ends_with("group"), starts_with("info"), "date", "year", "variable")) %>%
           distinct()
       }
       
@@ -200,7 +200,7 @@ get_difference <- function(dat, var_name, m0, mf, yr0, yrf = 2020, as_total) {
       ett <- seq(et0, etf, by = "1 month")
       u2 <- u %>%
         filter((variable %in% var_name) & (date %in% ett)) %>%
-        select(-c(ends_with("group"), starts_with("info"), "date"))
+        dplyr::select(-c(ends_with("group"), starts_with("info"), "date"))
       
       
       if (!("admin_level_1" %in% colnames(u1))) {
@@ -278,23 +278,29 @@ get_snapshot_data <- function(dat, region, yr0, m0, mf, value_type) {
 
 
 
-get_shpdat_snap <- function(dat, var_name, shp, yr0, m0, mf, covid_name) {
+get_shpdat_snap <- function(dat, var_name, shp, ttc, ttp, covid_name) {
+  
+  ttc <- as.Date(paste(format(ttc, "%Y"), "-", format(ttc, "%m"), "-01", sep = ""))
+  ttp <- as.Date(paste(format(ttp, "%Y"), "-", format(ttp, "%m"), "-01", sep = ""))
   
   u <- dat %>%
     filter((str_detect(variable, var_name)) & (str_detect(variable, "reports", negate = TRUE)))
   
-  udelta <- get_difference(u, var_name, m0, mf, yr0, yrf = 2020, as_total = TRUE)
+  udelta <- get_difference_new(u, var_name, ttc, ttp, as_total = TRUE)
+  
+  tt_pandemic <- seq(ttp[1], ttp[2], by = "1 month")
   
   # Covid data
   ucov <- dat %>%
-    filter((variable %in% covid_name) & (month >= which(month.abb %in% m0)) &
-             (month <= which(month.abb %in% mf)) & (year == 2020)) %>%
+    filter((variable %in% covid_name) & (date %in% tt_pandemic)) %>%
     filter(boxgroup %in% as.vector(indicator_labels[var_name]))
   
   if ("admin_level_1" %in% colnames(u)) {
     sout <- subset(shp, (country %in% unique(dat$country)) & 
-                     (admin_level_1 %in% unique(dat$admin_level_1))) %>%
-      merge(., udelta, by = c("country", "admin_level_1"))
+                     (admin_level_1 %in% unique(dat$admin_level_1)))
+    if (nrow(udelta) > 0) {
+      sout <- merge(sout, udelta, by = c("country", "admin_level_1"))
+    }
     ucov <- ucov %>% 
       group_by(country, admin_level_1) %>%
       summarise(covid_cumu = sum(value, na.rm = TRUE)) %>%
@@ -304,12 +310,12 @@ get_shpdat_snap <- function(dat, var_name, shp, yr0, m0, mf, covid_name) {
     } else {
       sout$covid_cumu <- NA
     }
-    
     sout <- sout %>% mutate(label_region = admin_level_1)
-    
   } else {
-    sout <- subset(shp, country %in% unique(dat$country)) %>%
-      merge(., udelta, by = "country")
+    sout <- subset(shp, country %in% unique(dat$country)) 
+    if (nrow(udelta) > 0){ 
+      sout <- merge(sout, udelta, by = "country")
+    }
     ucov <- ucov %>% 
       group_by(country) %>%
       summarise(covid_cumu = sum(value, na.rm = TRUE))
@@ -402,60 +408,72 @@ get_latlon0 <- function(region, shpdat) {
 
 # Reporting rates (monthly average) bar plot in snapshot tab ----------------------
 
-get_rrplot_snap <- function(dat, m0, mf, yr0, yrf = 2020, region, value_type) {
+get_rrplot_snap <- function(dat, tc, tp, region, value_type) {
   
-  m0 <- which(month.abb %in% m0)
-  mf <- which(month.abb %in% mf)
-  
-  
-  if (yr0 %in% "Historical Mean") {
-    tt0 <- NULL
-  } else {
-    ttf <- seq(as.Date(paste(2020, "-", m0, "-01", sep = "")), 
-               as.Date(paste(2020, "-", mf, "-01", sep = "")), by = "1 month")
+  if(length(tc == 1) & !("Historical Mean" %in% tc)) {
+    tc <- c(tc, tc)
   }
   
-  tt0 <- seq(as.Date(paste(yr0, "-", m0, "-01", sep = "")), 
-             as.Date(paste(yr0, "-", mf, "-01", sep = "")), by = "1 month")
+  if(length(tp == 1)) {
+    tp <- c(tp, tp)
+  }
   
+  if (any(tc %in% "Historical Mean")) {
+    tt0 <- NULL
+  } else {
+    ttmp <- as.Date(paste(format(tc, "%Y"), "-", format(tc, "%m"), "-01", sep = ""))
+    tt0 <- seq(ttmp[1], ttmp[2], by = "1 month")
+  }
+  
+  ttmp <- as.Date(paste(format(tp, "%Y"), "-", format(tp, "%m"), "-01", sep = ""))
+  ttf <- seq(ttmp[1], ttmp[2], by = "1 month")
   
   xrr1 <- filter_region_snap(xctry, region, region_list, regions) %>%
     filter(count_type %in% value_type) %>%
     filter(str_detect(variable, "reports")) %>%
     filter( date %in% c(tt0, ttf) ) %>%
-    select(year, variable, info) %>%
+    select(date, variable, info) %>%
+    mutate(period = if_else(date %in% tt0, paste(format(tc[c(1, length(tc))], "%b %Y"), collapse = " - "),
+                            paste(format(tp[c(1, length(tp))], "%b %Y"), collapse = " - "))) %>%
     mutate(info = as.numeric(as.character(info))) %>%
-    group_by(variable, year) %>%
+    group_by(variable, period) %>%
     summarise(rr_average = mean(info, na.rm = TRUE)) %>%
     mutate(variable = factor(variable, levels = rev(c("reports_rate__allcause_cases", "reports_rate__confirmed_cases", "reports_rate__anc1_visit")),
                              labels = rev(c("All Cause Consultations", "Confirmed Cases", "ANC (1st) Visit"))))
   
+  fill_values <- setNames(c("#9e9ac8", "#efedf5"), c(paste(format(tp[c(1, length(tp))], "%b %Y"), collapse = " - "), paste(format(tc[c(1, length(tc))], "%b %Y"), collapse = " - ")))
+  clr_values <- setNames(c("#9e9ac8", "#efedf5"), c(paste(format(tp[c(1, length(tp))], "%b %Y"), collapse = " - "), paste(format(tc[c(1, length(tc))], "%b %Y"), collapse = " - ")))
   
-  fill_values <- setNames(c("#9e9ac8", "#efedf5"), c("2020", as.character(yr0)))
-  clr_values <- setNames(c("#9e9ac8", "#efedf5"), c("2020", as.character(yr0)))
+  if(nrow(xrr1) > 0) {
+    ggout <- ggplot(xrr1, aes(x = rr_average, y = variable, 
+                              group = period, fill = period, colour = period)) + 
+      geom_bar(stat = "identity", position = position_dodge()) +
+      geom_text(aes(label = label_percent(accuracy = 0.1)(rr_average), group = period), 
+                position = position_dodge(width = 1), hjust = "outward", color = "black") + 
+      geom_vline(xintercept = 1, linetype = "dotted") +
+      scale_x_continuous(labels = percent, limits = c(0, (max(xrr1$rr_average) + 0.1))) +
+      theme_few(12) + xlab("Reporting Rate") + ylab("") +
+      scale_fill_manual(values = fill_values) + scale_colour_manual(values = clr_values) +
+      theme(legend.title = element_blank(), legend.position = "top")
+  } else {
+    ggout <- ggplot(data = data.frame(x = c(0,1), y = c(0,1)), aes(x = x, y = y)) +
+      geom_text(aes(x = 0.5, y = 0.5, label = "Data is unavailable")) +
+      theme_few(12) + xlab("") + ylab("")
+  }
   
-  
-  ggout <- ggplot(xrr1, aes(x = rr_average, y = variable, 
-                                     group = as.factor(year), fill = as.factor(year), colour = as.factor(year))) + 
-    geom_bar(stat = "identity", position = position_dodge()) +
-    geom_text(aes(label = label_percent(accuracy = 0.1)(rr_average), group = as.factor(year)), 
-              position = position_dodge(width = 1), hjust = 1.2, color = "black") + 
-    geom_vline(xintercept = 1, linetype = "dotted") +
-    scale_x_continuous(labels = percent) +
-    theme_few(12) + xlab("Reporting Rate") + ylab("") +
-    scale_fill_manual(values = fill_values) + scale_colour_manual(values = clr_values) +
-    theme(legend.title = element_blank(), legend.position = "top")
   
   (ggout)
 }
 
 # Mobility (monthly average) bar plot in snapshot tab ----------------------
-get_mobplot_snap <- function(dat, m0, mf, yrf, region) {
-  m0 <- which(month.abb %in% m0)
-  mf <- which(month.abb %in% mf)
+get_mobplot_snap <- function(dat, tp, region) {
   
-  tt <- seq(as.Date(paste(yrf, "-", m0, "-01", sep = "")),
-            as.Date(paste(yrf, "-", mf, "-01", sep = "")), by = "1 month")
+  if(length(tp == 1)) {
+    tp <- c(tp, tp)
+  }
+  
+  ttmp <- as.Date(paste(format(tp, "%Y"), "-", format(tp, "%m"), "-01", sep = ""))
+  tt <- seq(ttmp[1], ttmp[2], by = "1 month")
   
   xgmob <- dat %>% 
     filter((country %in% region) & (date %in% tt) & (admin_level_1 == "")) %>%
@@ -464,20 +482,31 @@ get_mobplot_snap <- function(dat, m0, mf, yrf, region) {
     ungroup() %>%
     mutate(var_label = factor(str_to_sentence(var_label),
                               levels = rev(c("Residential", "Workplaces", "Transit stations", 
-                                         "Grocery and pharmacy", "Retail and recreation", "Parks"))))
+                                             "Grocery and pharmacy", "Retail and recreation", "Parks"))))
   
-  ggmob <- ggplot(xgmob, aes(x = value, y = var_label, fill = var_label)) +
-    geom_bar(stat = "identity", position = position_dodge()) +
-    geom_text(aes(label = label_percent(accuracy = 0.1)(value)),
-              hjust = 0.5, color = "black") +
-    geom_vline(xintercept = 0, linetype = "dotted") +
-    scale_x_continuous(labels = percent) +
-    theme_few(12) + xlab("Percent change in mobility") + ylab("") +
-    theme(legend.position = "none") +
-    scale_fill_manual(values = mobility_clr)
+  xminval <- (ceiling(10 * max(abs(xgmob$value))) / 10) + 0.1
+  xxlim <- c(-xminval, xminval)
+  
+  if(nrow(xgmob) > 0) {
+    ggmob <- ggplot(xgmob, aes(x = value, y = var_label, fill = var_label)) +
+      geom_bar(stat = "identity", position = position_dodge()) +
+      geom_text(aes(label = label_percent(accuracy = 0.1)(value)),
+                hjust = "inward", color = "black") +
+      geom_vline(xintercept = 0, linetype = "dotted") +
+      scale_x_continuous(labels = percent, limits = xxlim) +
+      theme_few(12) + xlab("Percent change in mobility") + ylab("") +
+      theme(legend.position = "none") +
+      scale_fill_manual(values = mobility_clr)
+  } else {
+    
+    ggmob <- ggplot(data = data.frame(x = c(0,1), y = c(0,1)), aes(x = x, y = y)) +
+      geom_text(aes(x = 0.5, y = 0.5, label = "Data is unavailable")) +
+      theme_few(12) + xlab("") + ylab("")
+    
+  }
   
   
-  (ggmob)
+  return(ggmob)
 }
 
 # Data for percent change time series plot -----------------------------------------------------
@@ -533,7 +562,7 @@ get_pcnt_ts_data <- function(aggr, region, epiunit, indicator, adm1 = NULL, year
     mutate(cov_unit = if_else(epiunit %in% "value", "people",
                            if_else(variable %in% "covid_deaths", "/1M people", "/1K people"))) %>%
     mutate(txt_cov = paste(month.abb[month], " 2020, ", info_txt, ": ", value, " ", cov_unit, sep = "")) %>%
-    select(-c(count_type, linegroup, mygroup, combogroup, info, info_txt, cov_unit)) %>%
+    dplyr::select(-c(count_type, linegroup, mygroup, combogroup, info, info_txt, cov_unit)) %>%
     rename("covid_variable" = "variable", "covid_value" = "value")
   
   if ("admin_level_1" %in% colnames(yout)) {
@@ -589,8 +618,9 @@ get_pcnt_ts_plot <- function(dat, screen_size = NULL) {
   if (all(is.na(dat$delta))) {
     ymax <- 1; ymin <- -1
   } else {
-    ymax <- 0.05 * ceiling(max(dat$delta, na.rm = TRUE) / 0.05)
-    ymin <- 0.05 * floor(min(dat$delta, na.rm = TRUE) / 0.05)
+    dat_delta <- dat$delta[dat$delta <= 1]
+    ymax <- 0.05 * ceiling(max(dat_delta, na.rm = TRUE) / 0.05)
+    ymin <- 0.05 * floor(min(dat_delta, na.rm = TRUE) / 0.05)
     if (any(str_detect(replace_na(dat$variable, ""), "reports_rate|mob_"))) {
       ymax <-  0.05 * (ceiling(max(c(ymax, dat$value.x[str_detect(dat$variable, "reports_rate|mob_")]), na.rm = TRUE) / 0.05))
       ymin <-  0.05 * (floor(min(c(ymin, dat$value.x[str_detect(dat$variable, "reports_rate|mob_")]), na.rm = TRUE) / 0.05))
@@ -598,7 +628,7 @@ get_pcnt_ts_plot <- function(dat, screen_size = NULL) {
     
   }
   
-  
+  xdd <- c(as.Date("2020-01-01"), as.Date(paste(format(Sys.Date(), "%Y-%m"), "-01", sep = "")))
   gglist <- list()
   
   for (i in gi) {
@@ -622,40 +652,50 @@ get_pcnt_ts_plot <- function(dat, screen_size = NULL) {
     
     y2scl <- unique(dat$yscl)
     
-    ggi <- ggplot(dfi, aes(x = month, y = delta)) + 
+    
+    ggi <- ggplot(dfi, aes(x = date.x, y = delta)) + 
       geom_col(aes(fill = colorgroup, text = txt_pcnt)) +
       geom_hline(yintercept = 0, linetype = "dotted") +
       geom_line(aes(y = covid_scaled), color = clr_covid) +
       geom_point(aes(y = covid_scaled, text = txt_cov), color = clr_covid) +
       xlab("2020") + facet_wrap(~ggroup) +
-      # geom_text(aes(x = 0, y = ymax, label = i)) +
-      scale_x_continuous(limits = c(0, 12), breaks = seq(1, 12, by = 2), labels = month.abb[seq(1, 12, by = 2)]) +
-      scale_y_continuous(limits = c(-1.1, 1.1), sec.axis = sec_axis(trans = ~./y2scl, name = "COVID-19")) +
+      # scale_x_continuous(limits = c(0, 12), breaks = seq(1, 12, by = 2), labels = month.abb[seq(1, 12, by = 2)]) +
+      scale_x_date(date_breaks = "4 months", limits = as.Date(xdd), date_labels = "%b-%Y") +
       # scale_y_continuous("Percent", limits = c(ymin, ymax),
       #                    sec.axis = sec_axis(trans = ~./y2scl, name = "COVID-19")) + # temporarily commenting out to fix bug
-      scale_fill_manual(values = snap_bar_clr)
+      scale_fill_manual(values = snap_bar_clr) 
+    
+    if(max(abs(dfi$delta), na.rm = TRUE) > 1) {
+      ggi <- ggi + scale_y_continuous(name = "Changes in Indicator", sec.axis = sec_axis(trans = ~./y2scl, name = "COVID-19"), labels = scales::percent) 
+    } else {
+      ggi <- ggi + scale_y_continuous(name = "Changes in Indicator", limits = c(ymin, ymax), sec.axis = sec_axis(trans = ~./y2scl, name = "COVID-19"), labels = scales::percent) 
+    }
 
     if ( (nrow(drr) >= 1) & (nrow(dfi) >= 1)) {
       drr$mygroup <- factor(drr$mygroup)
       ggi <- ggi + 
-        geom_line(data = drr, aes(x = month, y = value.x, colour = colourgroup, alpha = mygroup, group = interaction(mygroup, colourgroup), text = txt_pcnt)) +
-        geom_point(data = subset(drr, year == 2020), aes(x = month, y = value.x, colour = colourgroup, alpha = mygroup, shape = mygroup, group = interaction(mygroup, colourgroup))) +
-        scale_alpha_manual(values = c("2020" = 1, "2019" = 0.5, "2018" = 0.5, "2017"  = 0.5, "2016" = 0.5, "Historical Mean" = 0.5)) + 
-        scale_shape_manual(values = c("2020" = 19, "2019" = 46, "2018" = 46, "2017"  = 46, "2016" = 46, "Historical Mean" = 46)) +
+        geom_line(data = drr, aes(x = date.x, y = value.x, colour = colourgroup, alpha = mygroup, group = interaction(mygroup, colourgroup), text = txt_pcnt)) +
+        geom_point(data = subset(drr, !(mygroup %in% "baseline")), 
+                   aes(x = date.x, y = value.x, colour = colourgroup, alpha = mygroup, shape = mygroup, group = interaction(mygroup, colourgroup)), size  = 0.75) +
+        scale_alpha_manual(values = c("current" = 1, "baseline" = 0.65, "2021" = 0.75, "2020" = 0.75, "2019" = 0.5, "2018" = 0.5, "2017"  = 0.5, "2016" = 0.5, "Historical Mean" = 0.5)) + 
+        scale_shape_manual(values = c("current" = 19, "baseline" = NA,"2021" = 19, "2020" = 19, "2019" = 46, "2018" = 46, "2017"  = 46, "2016" = 46, "Historical Mean" = 46)) +
         scale_colour_manual(values = pcnt_overlay_clr)
     }
 
     
     if (all(is.na(dfi$delta)) & (nrow(dfi) >= 1)) {
       ggi <- ggi + 
-        geom_text(aes(x = 6, y = 0.6, hjust = 0.5, label = "Indicator is unavailable \nfor the selected period"), 
+        geom_text(aes(x = xdd[1] + 200, y = 0.4, hjust = 0.5, label = "Indicator is unavailable \nfor the selected period"), 
                   color = "grey60", size = 3)
     } else if (nrow(dfi) < 1) {
-      ggi <- ggplot(dfi) + geom_text(aes(x = 6, y = 0.6, hjust = 0.5, label = "Indicator is unavailable \nfor the selected period"), 
+      ggi <- ggplot(dfi) + geom_text(aes(x = xdd[1] + 200, y = 0, hjust = 0.5, label = "Indicator is unavailable \nfor the selected period"), 
                        color = "grey60", size = 3) +
         # geom_text(aes(x = 0, y = ymax, label = i)) + 
-        scale_x_continuous(limits = c(0, 12), breaks = seq(1, 12, by = 2), labels = month.abb[seq(1, 12, by = 2)]) 
+        scale_x_date(date_breaks = "4 months", limits = as.Date(xdd), date_labels = "%b-%Y", minor_breaks = "1 month") 
     }
+    
+    ggi <- ggi + theme_few(8) + 
+      theme(legend.position = "none", axis.text.x = element_text(angle = 35, hjust = 1))
     
     # Set plot height if specified
     if (is.null(screen_size)) {
@@ -663,7 +703,8 @@ get_pcnt_ts_plot <- function(dat, screen_size = NULL) {
     } else {
       ggrow <- ceiling(length(gi) / gcol)
       rowjust <- ifelse(ggrow == 1, 0.3, 0.2)
-      gglist[[i]] <- ggplotly(ggi + theme_few(12) + theme(legend.position = "none") , tooltip = "text" #, 
+      gglist[[i]] <- ggplotly(ggi, 
+                              tooltip = "text" #, 
                               # width = 0.75 * screen_size[1], 
                               # height =  ggrow * rowjust * screen_size[2]
                               )  #%>%
@@ -810,4 +851,166 @@ card <- function(.id, .img, .ctitle, .cdescr, .actBttn) {
       </div>
       </div>')
   )
+}
+
+
+get_difference_new <- function(dat, var_name, tt0, ttf, as_total) {
+  
+  u <- dat %>% 
+    filter((stringr::str_detect(variable, var_name))) %>%
+    filter(stringr::str_detect(variable, "reports", negate = TRUE))
+  
+  if (nrow(u) == 0) {
+    yout <- data.frame()
+  } else {
+    # print(class(ttf))
+    if(class(ttf)!="Date"){ttf <- as.Date(ttf)}
+    # ttf <- as.Date(ttf)
+    
+    # current year period 
+    ett <- seq(ttf[1], ttf[2], by = "1 month")
+    u2 <- u %>%
+      filter((variable %in% var_name) & (date %in% ett)) %>%
+      select(-c(ends_with("group"), starts_with("info")))
+    
+    # define the baseline period. when historical mean is the baseline period,
+    # the data needs to be filtered by the variable name and the month only
+    if (!any(tt0 %in% "historical mean")) {
+      tt0 <- as.Date(tt0)
+      bt0 <- tt0[1]
+      btf <- tt0[2]
+      btt <- seq(bt0, btf, by = "1 month")
+      mm <- as.numeric(format(btt, "%m"))
+      u1 <- u %>% 
+          filter(variable %in% var_name) %>%
+          filter(date %in% btt) %>%
+          select(-c(ends_with("group"), starts_with("info"), "year"))
+    } else {
+      hmm <- data.frame(month = as.numeric(format(seq(ttf[1], ttf[2], by = "1 month"), "%m")))
+      u1 <- u %>% 
+        filter(stringr::str_detect(variable, "ltm")) %>%
+        merge(hmm, ., by = "month", all.x = TRUE, all.y = FALSE) %>%
+        select(-c(ends_with("group"), starts_with("info"), "date", "year")) 
+    }
+    
+    if (!("admin_level_1" %in% colnames(u1))) {
+      u1 <- u1 %>% 
+        group_by(country, variable) %>% arrange(date) %>% 
+        mutate(id = row_number()) %>% ungroup()
+      u2 <- u2 %>%
+        group_by(country, variable) %>% arrange(date) %>%
+        mutate(id = row_number()) %>% ungroup()
+      u <- merge(u1, u2, by = c("country", "variable", "id"), all.x = FALSE, all.y = FALSE)
+    } else {
+      u1 <- u1 %>% 
+        group_by(country, admin_level_1, variable) %>% arrange(date) %>%
+        mutate(id = row_number()) %>% ungroup()
+      u2 <- u2 %>%
+        group_by(country, admin_level_1, variable) %>% arrange(date) %>%
+        mutate(id = row_number()) %>% ungroup()
+      u <- merge(u1, u2, by = c("country", "admin_level_1", "variable", "id"), all.x = FALSE, all.y = FALSE)
+    }
+    
+    if (as_total) {
+      # Only add data that are available in both years
+      # so that the comparison is with the same number of months
+      # yout <- u %>% filter(!(is.na(value.x)) & !(is.na(value.y)))
+      yout <- u %>% mutate(value.x = na_if(value.x, 0),
+                           value.y = na_if(value.y, 0))
+      if ("admin_level_1" %in% colnames(u)) {
+        yout <- yout %>%
+          group_by(country, admin_level_1, variable) %>%
+          summarise(delta = round(100 * (sum(value.y) - sum(value.x)) / sum(value.x), digits = 2)) 
+      } else {
+        yout <- yout %>%
+          group_by(country, variable) %>%
+          summarise(delta = round(100 * (sum(value.y) - sum(value.x)) / sum(value.x), digits = 2))
+      }
+    } else {
+      yout <- u %>% mutate(value.x = na_if(value.x, 0),
+                           value.y = na_if(value.y, 0)) %>%
+        mutate(delta = round(100 * (value.y - value.x) / value.x, digits = 2),
+               colorgroup = if_else(delta > 0, "positive", "negative"),
+               date = date.y,
+               year = as.numeric(format(date.y, "%Y")),
+               month = as.numeric(format(date.y, "%m")))
+    }
+    
+    
+  }
+  
+  return(yout)
+}
+
+
+
+get_difference_ts <- function(dat, var_name, tt0, ttf) {
+  
+  u <- dat %>% 
+    filter((stringr::str_detect(variable, var_name))) %>%
+    filter(stringr::str_detect(variable, "reports", negate = TRUE))
+  
+  if (nrow(u) == 0) {
+    yout <- data.frame()
+  } else {
+    # print(class(ttf))
+    if(class(ttf)!="Date"){ttf <- as.Date(ttf)}
+    # ttf <- as.Date(ttf)
+    
+    # current year period 
+    ett <- seq(ttf[1], ttf[2], by = "1 month")
+    u2 <- u %>%
+      filter((variable %in% var_name) & (date %in% ett)) %>%
+      select(-c(ends_with("group"), starts_with("info")))
+    
+    # define the baseline period. when historical mean is the baseline period,
+    # the data needs to be filtered by the variable name and the month only
+    if (!any(tt0 %in% "historical mean")) {
+      tt0 <- as.Date(tt0)
+      bt0 <- tt0[1]
+      if (length(tt0) > 1) {
+        btf <- tt0[2]
+        btt <- seq(bt0, btf, by = "1 month")
+      } else {
+        btf <- as.Date(paste(format(tt0[1], "%Y"), "-12-01", sep = ""))
+        btt <- rep(seq(bt0, btf, by = "1 month"), 2)[1:length(ett)]
+      }
+      u1 <- u %>% 
+        filter(variable %in% var_name) %>%
+        filter(date %in% btt) %>%
+        select(-c(ends_with("group"), starts_with("info"), "year"))
+    } else {
+      hmm <- data.frame(month = as.numeric(format(seq(ttf[1], ttf[2], by = "1 month"), "%m")))
+      u1 <- u %>% 
+        filter(stringr::str_detect(variable, "ltm")) %>%
+        merge(hmm, ., by = "month", all.x = TRUE, all.y = FALSE) %>%
+        select(-c(ends_with("group"), starts_with("info"), "date", "year")) 
+    }
+    
+    if (!("admin_level_1" %in% colnames(u1))) {
+      u <- merge(u1, u2, by = c("country", "variable", "month"), all.x = FALSE, all.y = FALSE)
+    } else {
+      u <- merge(u1, u2, by = c("country", "admin_level_1", "variable", "month"), all.x = FALSE, all.y = FALSE)
+    }
+    
+      yout <- u %>% mutate(value.x = na_if(value.x, 0),
+                           value.y = na_if(value.y, 0)) %>%
+        mutate(delta = round(100 * (value.y - value.x) / value.x, digits = 2),
+               colorgroup = if_else(delta > 0, "positive", "negative"),
+               date = date.y,
+               year = as.numeric(format(date.y, "%Y")),
+               month = as.numeric(format(date.y, "%m")))
+
+    
+    
+  }
+  
+  return(yout)
+}
+
+
+check_nmonth <- function(tt1, tt2){
+  n1 <- length(seq(from = as.Date(tt1[1]), to = as.Date(tt1[2]), by = "1 month"))
+  n2 <- length(seq(from = as.Date(tt2[1]), to = as.Date(tt2[2]), by = "1 month"))
+  return(n1 == n2)
 }

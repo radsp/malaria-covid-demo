@@ -32,8 +32,8 @@ s1$lon_ctr <- s1_ctr[,"X"]
 srank <- readOGR("Benin Trimmed/Population_Layer.shp")
 
 wpop_adm1 <- wpop_adm1 %>% 
-  mutate(population_60_years_and_over = rowSums(select(., matches("60_to_64|65_to_69|70_to_74|75_to_79|80_years"))),
-         population_40_to_60_years = rowSums(select(., matches("40_to_44|45_to_49|50_to_54|55_to_59")))) %>%
+  mutate(population_60_years_and_over = rowSums(dplyr::select(., matches("60_to_64|65_to_69|70_to_74|75_to_79|80_years"))),
+         population_40_to_60_years = rowSums(dplyr::select(., matches("40_to_44|45_to_49|50_to_54|55_to_59")))) %>%
   mutate(popden_60_years_and_over = population_60_years_and_over / square_km,
          popden_40_to_60_years = population_40_to_60_years / square_km) %>%
   rename(admin1 = admin_level_1)
@@ -56,7 +56,7 @@ indicator_labels <- setNames(c("All Cause Consultations", "Tested Cases", "Malar
 
 # Current month 
 # mo_now <- as.numeric(format(Sys.Date(), "%m")) 
-mo_now <- 9 # temporary fix - using our current month no longer works because now we're in 2021!
+mo_now <- 12 # temporary fix - using our current month no longer works because now we're in 2021!
 
 # Permission set variables
 permission_set_id <- 165
@@ -93,10 +93,10 @@ all_countries <- sort(unique(reporting_tbl$country))
 
 # Google mobility data
 xmob <- xvul0 %>% 
-  select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", ends_with("baseline"))) %>%
+  dplyr::select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", ends_with("baseline"))) %>%
   filter( (admin_level_2 == "") & (!is.na(day)) ) %>%
-  select(-admin_level_2) %>%
-  select(-c("day", "date")) %>%
+  dplyr::select(-admin_level_2) %>%
+  dplyr::select(-c("day", "date")) %>%
   group_by(country, admin_level_1, year, month) %>%
   summarise_all(mean, na.rm = TRUE) %>%
   mutate(date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
@@ -104,3 +104,13 @@ xmob <- xvul0 %>%
   setNames(gsub("_percent_change_from_baseline", "", names(.))) %>%
   mutate(country = factor(country, levels = as.character(unique(country))))
 
+# custom scores - list of countries where we use 2018 data
+custom_mal_ctry_18 <- c('Angola', 'Burkina Faso', 'Malawi', 'Mali','Niger') # we can add countries here as we need
+
+# Default date range selection for snapshot tab 
+# Set as 3 months prior to current date (assuming that QR data is about 3/4 
+# months delayed)
+df_snap <- as.Date(Sys.Date()) - (as.numeric(format(Sys.Date(), "%d")) - 1) 
+drangeF_snap <- as.Date(rev(seq(from = df_snap, by = "-3 months", length.out = 3)[c(2,3)]))
+d0_snap <- as.Date(paste("2019-", format(drangeF_snap[2], "%m-%d"), sep = ""))
+drange0_snap <- as.Date(rev(seq(from = d0_snap, by = "-3 months", length.out = 2)))

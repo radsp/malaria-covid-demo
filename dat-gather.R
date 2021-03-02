@@ -16,7 +16,8 @@ get_meanval <- function(u){
 
 # Inputs
 qr_date_max <- as.Date("2020-09-01")
-fcst_date_min <- Sys.Date()
+fcst_date_min <- Sys.Date() 
+# fcst_date_min <- as.Date("2020-10-01") # temporarily setting this manually to Q3 2020 until 3-month feature is complete
 covid_date_max <- seq(Sys.Date(), length.out = 2, by = "-1 month")[2]
 
 #-------------------------------------------------------------------
@@ -34,7 +35,7 @@ covid_date_max <- seq(Sys.Date(), length.out = 2, by = "-1 month")[2]
 query <- sql("SELECT country, admin_level_1, admin_level_2, date, year, month,
              new_consultation_all_cause, tested_cases, confirmed_cases, 
              /* confirmed_cases_facility, confirmed_cases_community, */
-             severe_cases, malaria_deaths, anc1_visit, 
+             severe_cases, malaria_deaths, anc1_visit, health_workers,
              reports_received__new_consultation, reports_expected__new_consultation,
              reports_received__confirmed_cases, reports_expected__confirmed_cases,
              reports_received__anc_consultation, reports_expected__anc_consultation,
@@ -52,7 +53,7 @@ if(!(class(xm0$date) %in% "Date")) xm0$date <- as.Date(as.character(xm0$date))
 
 
 vvpop <- c("allcause_cases", "tested_cases", "confirmed_cases", 
-           "severe_cases", "malaria_deaths", "anc1_visit")
+           "severe_cases", "malaria_deaths", "anc1_visit", "health_workers")
 
 xmal0 <- xm0 %>%
   # Remove the aggregated country and level 1 rows
@@ -68,7 +69,7 @@ xmal0 <- xm0 %>%
   mutate(datemin = if_else(is.na(datemin), qr_date_max, datemin)) %>%
   filter(date >= datemin)  %>%
   filter(date <= qr_date_max) %>%
-  ungroup() %>% select(-datemin) %>%
+  ungroup() %>% dplyr::select(-datemin) %>%
   # add population for each indicator so that if the values are NA, population will 
   # be 0. This is to avoid having higher population denominator where the count is NA
   pivot_longer(cols = vvpop, names_to = "vpop", values_to = "tmp") %>%
@@ -76,11 +77,10 @@ xmal0 <- xm0 %>%
   pivot_wider(names_from = vpop, values_from = c(tmp, population)) %>%
   # Rename variables with tmp_ suffixes back to its original
   setNames(gsub("tmp_", "", names(.)))
-  
 
 
 ##-- National level data for Malaria --##
-  
+
 tmp0_main <- xmal0 %>%
   group_by(country, date, year, month) %>%
   summarise_at(., vars(-c("admin_level_1", "admin_level_2")),
@@ -92,16 +92,16 @@ tmp0_main <- xmal0 %>%
          reports_rate__confirmed_cases = reports_received__confirmed_cases / reports_expected__confirmed_cases, 
          reports_rate__anc1_visit = reports_received__anc_consultation / reports_expected__anc_consultation) %>%
   # remove unused variables
-  select(-((starts_with("reports_received")) | starts_with("reports_expected")))
+  dplyr::select(-((starts_with("reports_received")) | starts_with("reports_expected")))
 
 tmp0_pop <- tmp0_main %>%
-  select(c("country", "date", "year", "month"), starts_with("population_")) %>%
+  dplyr::select(c("country", "date", "year", "month"), starts_with("population_")) %>%
   pivot_longer(cols = -c("country", "date", "year", "month"), 
                names_to = "variable", values_to = "population_by_variable") %>%
   mutate(variable = gsub("population_", "", variable))
 
 tmp0 <- tmp0_main %>%
-  select(!starts_with("population_")) %>%
+  dplyr::select(!starts_with("population_")) %>%
   pivot_longer(cols = -c("country", "date", "year", "month", "total_population"), 
                names_to = "variable", values_to = "value") %>%
   full_join(., tmp0_pop) %>%
@@ -113,7 +113,7 @@ tmp0 <- tmp0_main %>%
   pivot_longer(cols = c("value", "value_rate"), names_to = "count_type", values_to = "value") 
 
 
-popqr_adm0 <- select(tmp0, c("country", "year", "month", "total_population"))
+popqr_adm0 <- dplyr::select(tmp0, c("country", "year", "month", "total_population"))
 
 # historical mean calculation
 ltm0 <- tmp0 %>%
@@ -129,17 +129,17 @@ ltm0 <- tmp0 %>%
 
 
 xmal_reporting_tmp <- tmp0 %>%
-  select(-c(population_by_variable, total_population)) %>%
+  dplyr::select(-c(population_by_variable, total_population)) %>%
   pivot_wider(names_from = "variable", values_from = "value") %>%
   group_by(country, count_type) %>%
   mutate(reports_rate_scaled__allcause_cases =  rescale(reports_rate__allcause_cases, to = c(0, 0.8* get_meanval(allcause_cases))),
          reports_rate_scaled__confirmed_cases = rescale(reports_rate__confirmed_cases, to = c(0, 0.8 * get_meanval(confirmed_cases))),
          reports_rate_scaled__anc1_visit =  rescale(reports_rate__anc1_visit, to = c(0, 0.8 * get_meanval(anc1_visit)))) %>%
-  select(country, date, year, month, count_type, starts_with("reports_")) %>%
+  dplyr::select(country, date, year, month, count_type, starts_with("reports_")) %>%
   ungroup()
 
 xmal_reporting_1 <- xmal_reporting_tmp %>%
-  select(country, date, year, month, count_type, ends_with("allcause_cases")) %>%
+  dplyr::select(country, date, year, month, count_type, ends_with("allcause_cases")) %>%
   rename('info' = 'reports_rate__allcause_cases', 'value' = 'reports_rate_scaled__allcause_cases') %>%
   mutate(info = as.character(round(info, digits = 2)),
          variable = "reports_rate__allcause_cases", 
@@ -148,7 +148,7 @@ xmal_reporting_1 <- xmal_reporting_tmp %>%
 
 
 xmal_reporting_2 <- xmal_reporting_tmp %>%
-  select(country, date, year, month, count_type, ends_with("confirmed_cases")) %>%
+  dplyr::select(country, date, year, month, count_type, ends_with("confirmed_cases")) %>%
   rename('info' = 'reports_rate__confirmed_cases', 'value' = 'reports_rate_scaled__confirmed_cases') %>%
   mutate(info = as.character(round(info, digits = 2)),
          variable = "reports_rate__confirmed_cases", 
@@ -157,7 +157,7 @@ xmal_reporting_2 <- xmal_reporting_tmp %>%
 
 
 xmal_reporting_3 <- xmal_reporting_tmp %>%
-  select(country, date, year, month, count_type, ends_with("anc1_visit")) %>%
+  dplyr::select(country, date, year, month, count_type, ends_with("anc1_visit")) %>%
   rename('info' = 'reports_rate__anc1_visit', 'value' = 'reports_rate_scaled__anc1_visit') %>%
   mutate(info = as.character(round(info, digits = 2)),
          variable = "reports_rate__anc1_visit", 
@@ -169,10 +169,10 @@ xmal_reporting <- rbind(xmal_reporting_1, xmal_reporting_2, xmal_reporting_3) %>
   mutate(linegroup = if_else(year == 2020, "2020", "Other Years"),
          mygroup = as.character(year),
          combogroup = "Report Rate")
-  
+
 
 xmal_adm0 <- tmp0 %>%
-  select(-c(total_population, population_by_variable)) %>% 
+  dplyr::select(-c(total_population, population_by_variable)) %>% 
   filter(!(str_detect(variable, "reports_rate"))) %>%
   bind_rows(., ltm0) %>%
   mutate(colourgroup = gsub("_ltm", "", variable)) %>%
@@ -209,17 +209,17 @@ xmal_adm0 <- tmp0 %>%
 
 
 
-rm(list = c("ltm0", "tmp0", "tmp0_main", "tmp0_pop", "xmal_reporting",
-            "xmal_reporting_tmp",
-            "xmal_reporting_1", "xmal_reporting_2", "xmal_reporting_3"))
-
+# rm(list = c("ltm0", "tmp0", "tmp0_main", "tmp0_pop", "xmal_reporting",
+#             "xmal_reporting_tmp",
+#             "xmal_reporting_1", "xmal_reporting_2", "xmal_reporting_3"))
+# 
 
 
 ##-- Sub-National level data for Malaria --##
 
 tmp1_main <- xmal0 %>%
   group_by(country, admin_level_1, date, year, month) %>%
-  summarise_at(., vars(-c("admin_level_2")),
+  summarise_at(., vars(-c("admin_level_2", "health_workers", "allcause_cases")),
                .funs =  list(~sum(., na.rm = TRUE))) %>%
   ungroup() %>%
   # Calculate derived variables (positivity rates and reporting rates) 
@@ -228,16 +228,27 @@ tmp1_main <- xmal0 %>%
          reports_rate__confirmed_cases = reports_received__confirmed_cases / reports_expected__confirmed_cases, 
          reports_rate__anc1_visit = reports_received__anc_consultation / reports_expected__anc_consultation) %>%
   # remove unused variables
-  select(-((starts_with("reports_received")) | starts_with("reports_expected")))
+  dplyr::select(-((starts_with("reports_received")) | starts_with("reports_expected")))
+  
+# adding na handling to custom scores malria indicators - we only apply to these vars to avoid errors in other tabs
+tmp1_main_custom <- xmal0 %>%
+  group_by(country, admin_level_1, date, year, month) %>%
+  select(country, admin_level_1, admin_level_2, date, year, month, allcause_cases, health_workers,
+         population_allcause_cases, population_health_workers) %>%
+  summarise_at(., vars(-c("admin_level_2")),
+               .funs = list( ~ifelse(all(is.na(.)), NA, sum(., na.rm = TRUE)))) %>%
+  ungroup() 
+
+tmp1_main <- merge(tmp1_main, tmp1_main_custom)
 
 tmp1_pop <- tmp1_main %>%
-  select(c("country", "admin_level_1", "date", "year", "month"), starts_with("population_")) %>%
+  dplyr::select(c("country", "admin_level_1", "date", "year", "month"), starts_with("population_")) %>%
   pivot_longer(cols = -c("country", "admin_level_1", "date", "year", "month"), 
                names_to = "variable", values_to = "population_by_variable") %>%
   mutate(variable = gsub("population_", "", variable))
 
 tmp1 <- tmp1_main %>%
-  select(!starts_with("population_")) %>%
+  dplyr::select(!starts_with("population_")) %>%
   pivot_longer(cols = -c("country", "admin_level_1", "date", "year", "month", "total_population"), 
                names_to = "variable", values_to = "value") %>%
   full_join(., tmp1_pop) %>%
@@ -245,11 +256,11 @@ tmp1 <- tmp1_main %>%
                                 c("tpr", "reports_rate__confirmed_cases", "anc1_visit",
                                   "reports_rate__allcause_cases", "reports_rate__anc1_visit"), 
                               value, 1000 * value / population_by_variable)) %>%
-  mutate(value_rate = if_else(variable %in% "malaria_deaths", 1000000 * value / population_by_variable, value_rate)) %>%
+  mutate(value_rate = if_else(variable %in% c("health_workers", "malaria_deaths"), 1000000 * value / population_by_variable, value_rate)) %>%
   pivot_longer(cols = c("value", "value_rate"), names_to = "count_type", values_to = "value") 
 
 
-popqr_adm1 <- select(tmp1, c("country", "admin_level_1", "year", "month", "total_population"))
+popqr_adm1 <- dplyr::select(tmp1, c("country", "admin_level_1", "year", "month", "total_population"))
 
 # historical mean
 ltm1 <- tmp1 %>%
@@ -265,17 +276,17 @@ ltm1 <- tmp1 %>%
 
 
 xmal1_reporting_tmp <- tmp1 %>%
-  select(-c(population_by_variable, total_population)) %>%
+  dplyr::select(-c(population_by_variable, total_population)) %>%
   pivot_wider(names_from = "variable", values_from = "value") %>%
   group_by(country, admin_level_1, count_type) %>%
   mutate(reports_rate_scaled__allcause_cases =  rescale(reports_rate__allcause_cases, to = c(0, 0.8* get_meanval(allcause_cases))),
          reports_rate_scaled__confirmed_cases = rescale(reports_rate__confirmed_cases, to = c(0, 0.8 * get_meanval(confirmed_cases))),
          reports_rate_scaled__anc1_visit =  rescale(reports_rate__anc1_visit, to = c(0, 0.8 * get_meanval(anc1_visit)))) %>%
-  select(country, admin_level_1, date, year, month, count_type, starts_with("reports_")) %>%
+  dplyr::select(country, admin_level_1, date, year, month, count_type, starts_with("reports_")) %>%
   ungroup()
 
 xmal1_reporting_1 <- xmal1_reporting_tmp %>%
-  select(country, admin_level_1, date, year, month, count_type, ends_with("allcause_cases")) %>%
+  dplyr::select(country, admin_level_1, date, year, month, count_type, ends_with("allcause_cases")) %>%
   rename('info' = 'reports_rate__allcause_cases', 'value' = 'reports_rate_scaled__allcause_cases') %>%
   mutate(info = as.character(round(info, digits = 2)),
          variable = "reports_rate__allcause_cases", 
@@ -284,7 +295,7 @@ xmal1_reporting_1 <- xmal1_reporting_tmp %>%
 
 
 xmal1_reporting_2 <- xmal1_reporting_tmp %>%
-  select(country, admin_level_1, date, year, month, count_type, ends_with("confirmed_cases")) %>%
+  dplyr::select(country, admin_level_1, date, year, month, count_type, ends_with("confirmed_cases")) %>%
   rename('info' = 'reports_rate__confirmed_cases', 'value' = 'reports_rate_scaled__confirmed_cases') %>%
   mutate(info = as.character(round(info, digits = 2)),
          variable = "reports_rate__confirmed_cases", 
@@ -293,7 +304,7 @@ xmal1_reporting_2 <- xmal1_reporting_tmp %>%
 
 
 xmal1_reporting_3 <- xmal1_reporting_tmp %>%
-  select(country, admin_level_1, date, year, month, count_type, ends_with("anc1_visit")) %>%
+  dplyr::select(country, admin_level_1, date, year, month, count_type, ends_with("anc1_visit")) %>%
   rename('info' = 'reports_rate__anc1_visit', 'value' = 'reports_rate_scaled__anc1_visit') %>%
   mutate(info = as.character(round(info, digits = 2)),
          variable = "reports_rate__anc1_visit", 
@@ -309,7 +320,7 @@ xmal1_reporting <- rbind(xmal1_reporting_1, xmal1_reporting_2, xmal1_reporting_3
 
 
 xmal_adm1 <- tmp1 %>%
-  select(-c(total_population, population_by_variable)) %>%
+  dplyr::select(-c(total_population, population_by_variable)) %>%
   filter(!(str_detect(variable, "reports_rate"))) %>%
   bind_rows(., ltm1) %>%
   mutate(colourgroup = gsub("_ltm", "", variable)) %>%
@@ -339,17 +350,17 @@ xvul0 <- read_civis("covid.vulnerability_reporting_table") %>%
 
 wpop <- xvul0 %>%
   filter((date == as.Date("2020-01-01")) & !(admin_level_2 == "") & !(admin_level_1 == "")) %>% #  yrly bc pop data
-  select(country, admin_level_1, admin_level_2, date, year, square_km, starts_with("male"), starts_with("female")) %>%
-  mutate(total_worldpop = rowSums(select(., starts_with("male"), starts_with("female")), na.rm = TRUE))
+  dplyr::select(country, admin_level_1, admin_level_2, date, year, square_km, starts_with("male"), starts_with("female")) %>%
+  mutate(total_worldpop = rowSums(dplyr::select(., starts_with("male"), starts_with("female")), na.rm = TRUE))
 
 wpop_adm0 <- wpop %>%
-  select(-c(date, admin_level_1, admin_level_2)) %>%
+  dplyr::select(-c(date, admin_level_1, admin_level_2)) %>%
   group_by(country, year) %>%
   summarise_all(.funs =  list(~sum(., na.rm = TRUE))) %>%
   ungroup()
 
 wpop_adm1 <- wpop %>%
-  select(-c(date, admin_level_2)) %>%
+  dplyr::select(-c(date, admin_level_2)) %>%
   group_by(country, admin_level_1, year) %>%
   summarise_all(.funs =  list(~sum(., na.rm = TRUE))) %>%
   ungroup()
@@ -359,10 +370,10 @@ wpop_adm1 <- wpop %>%
 # wpop0 <- read_civis("covid.world_pop") %>%
 #   rename(country = admin0, admin_level_1 = admin1, admin_level_2 = admin2) %>%
 #   mutate(country = recode(country, "Cote d'Ivoire" = "Cote D'Ivoire")) %>%
-#   mutate(total_worldpop =  rowSums(select(., starts_with("male"), starts_with("female")), na.rm = TRUE))
+#   mutate(total_worldpop =  rowSums(dplyr::select(., starts_with("male"), starts_with("female")), na.rm = TRUE))
 # 
 # wpop_adm0 <- wpop0 %>%
-#   select(country, starts_with("male"), starts_with("female"),  total_worldpop) %>%
+#   dplyr::select(country, starts_with("male"), starts_with("female"),  total_worldpop) %>%
 #   group_by(country) %>%
 #   summarise_all(.funs =  list(~sum(., na.rm = TRUE))) %>%
 #   mutate(year = 2020) %>%
@@ -370,7 +381,7 @@ wpop_adm1 <- wpop %>%
 # 
 # 
 # wpop_adm1 <- wpop0 %>%
-#   select(country, admin_level_1, starts_with("male"), starts_with("female"),  total_worldpop) %>%
+#   dplyr::select(country, admin_level_1, starts_with("male"), starts_with("female"),  total_worldpop) %>%
 #   group_by(country, admin_level_1) %>%
 #   summarise_all(.funs =  list(~sum(., na.rm = TRUE))) %>%
 #   mutate(year = 2020) %>%
@@ -393,7 +404,7 @@ xcov_adm0_tmp1 <- read_civis("covid.national_wide_monthly") %>%
                           "Democratic Republic of Congo" = "DR Congo", 
                           "Tanzania" = "Tanzania (Mainland)")) %>%
   rename(covid_cases = new_cases, covid_deaths = new_deaths, covid_tests = new_tests) %>%
-  select(-starts_with("total"), -starts_with("cumulative")) %>%
+  dplyr::select(-starts_with("total"), -starts_with("cumulative")) %>%
   left_join(., wpop_adm0[, c("country", "year", "total_worldpop")], by = c("country", "year")) %>%
   # left_join(., popqr_adm0[, c("country", "year", "total_population")], by = c("country", "year")) %>%
   mutate(covid_cases_rate = 1000 * covid_cases / total_worldpop,
@@ -402,7 +413,7 @@ xcov_adm0_tmp1 <- read_civis("covid.national_wide_monthly") %>%
                names_to = "variable", values_to = "value") %>%
   mutate(count_type = if_else(str_detect(variable, "rate"), "value_rate", "value"),
          date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
-  select(-c(total_worldpop, covid_tests)) %>%
+  dplyr::select(-c(total_worldpop, covid_tests)) %>%
   relocate(country, date)
 
 
@@ -438,7 +449,7 @@ rm(list = c("xcov_adm0_cases", "xcov_adm0_tmp1"))
 xc0 <- read_civis("covid.subnational_wide_monthly")
 
 xcov_adm1_tmp1 <- xc0 %>%
-  select(country, admin_level_1, month, new_cases, new_deaths) %>%
+  dplyr::select(country, admin_level_1, month, new_cases, new_deaths) %>%
   rename(covid_cases = new_cases, covid_deaths = new_deaths) %>%
   group_by(country, admin_level_1, month) %>%
   summarise_all(.funs =  list(~sum(., na.rm = TRUE))) %>%
@@ -452,7 +463,7 @@ xcov_adm1_tmp1 <- xc0 %>%
                names_to = "variable", values_to = "value") %>%
   mutate(count_type = if_else(str_detect(variable, "rate"), "value_rate", "value"),
          date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
-  select(-total_worldpop) %>%
+  dplyr::select(-total_worldpop) %>%
   relocate(date, .before = "month")
 
 # need to repeat each covid cases for each box group (excluding deaths)
@@ -526,7 +537,7 @@ ximp <- ximp0 %>%
   rename('variable'='compartment', 'value'='y_mean') %>%
   pivot_longer(cols = c("value", "value_rate"), names_to = "count_type",
                values_to = "value") %>%
-  select(-total_worldpop) %>%
+  dplyr::select(-total_worldpop) %>%
   mutate(variable = if_else(variable %in% "deaths", "covid_deaths_fcst", 
                             "covid_cases_fcst"),
          colourgroup = "covid")
@@ -571,9 +582,9 @@ ts_mal_adm1 <- bind_rows(xmal_adm1, xcov_adm1) %>%
                                         "COVID-19", "COVID-19 Forecast", "Report Rate")),
          boxgroup = factor(boxgroup, 
                            levels = c("allcause_cases", "tested_cases", "confirmed_cases", "tpr", 
-                                      "severe_cases", "malaria_deaths", "anc1_visit"),
+                                      "severe_cases", "malaria_deaths", "anc1_visit", "health_workers"),
                            labels = c("All Cause Consultations", "Tested Cases", "Malaria Confirmed Cases",
-                                      "Test Positivity Rate", "Malaria Severe Cases", "Malaria Deaths", "ANC (1st) Visit")))
+                                      "Test Positivity Rate", "Malaria Severe Cases", "Malaria Deaths", "ANC (1st) Visit", "Health Workers")))
 
 
 ts_mal <- bind_rows(ts_mal_adm0, ts_mal_adm1) %>%
@@ -620,14 +631,14 @@ xrf_tmp1 <- bind_rows(xrf_tmp1, xrf_tmp_ltm)
 # Maximum rainfall value in each admin level is needed to scale the malaria data
 xrf_tmp2 <- xrf_tmp1 %>%
   filter(!(xrf_tmp1$variable %in% c("rf_ltm", "rf_ltm_acc_cy", "rf_ltm_acc_ssn"))) %>%
-  select(-c(count_type, variable)) %>%
+  dplyr::select(-c(count_type, variable)) %>%
   group_by(country, admin_level_1, rf_type) %>%
   summarise(rfmax = max(value, na.rm = TRUE)) %>%
   ungroup()
 
 mal4rf <- subset(ts_mal, variable %in% c("allcause_cases", "tested_cases", "confirmed_cases", "tpr", "severe_cases", 
                                          "malaria_deaths", "anc1_visit", "covid_cases", "covid_deaths")) %>%
-  select(country, admin_level_1, date, year, month, variable, count_type, value) %>%
+  dplyr::select(country, admin_level_1, date, year, month, variable, count_type, value) %>%
   # mutate(admin_level_1 = if_else(admin_level_1 == "", NA_character_, as.character(admin_level_1))) %>%
   mutate(admin_level_1 = if_else(is.na(admin_level_1), "", as.character(admin_level_1))) %>%
   merge(., xrf_tmp2, by = c("country", "admin_level_1"), all = TRUE) %>%
@@ -639,7 +650,7 @@ mal4rf <- subset(ts_mal, variable %in% c("allcause_cases", "tested_cases", "conf
   ungroup() %>%
   # filter(!(is.na(count_type))) %>%
   mutate(mal_value0 = round(value, digits = 2)) %>%
-  select(country, admin_level_1, date, year, month, variable, count_type, rf_type, value_scaled, mal_value0) %>%
+  dplyr::select(country, admin_level_1, date, year, month, variable, count_type, rf_type, value_scaled, mal_value0) %>%
   left_join(., unique(xrf_tmp1[, c("country", "admin_level_1", "date", "month_order_ssn", "year_ssn")])) %>%
   rename('value' = 'value_scaled') %>%
   mutate(mal_label = recode(variable, 'confirmed_cases'  = "Malaria Confirmed Cases", 
@@ -730,17 +741,17 @@ xprov <- xprov %>%
 
 
 
-rm(list = setdiff(ls(), c("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xrf","xvul0", "wpop_adm0", "wpop_adm1",
-                          lsf.str())))
+# rm(list = setdiff(ls(), c("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xrf","xvul0", "wpop_adm0", "wpop_adm1",
+#                           lsf.str())))
 
 # save("xctry", "xprov", "xrf_adm0", "xrf_adm1", "xrf","xvul0", "wpop_adm0", "wpop_adm1",
 #      file = "appdata.RData")
 
 
-xmob <- xvul0 %>% select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", ends_with("baseline"))) %>%
+xmob <- xvul0 %>% dplyr::select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", ends_with("baseline"))) %>%
   filter( (admin_level_2 == "") & (!is.na(day)) ) %>%
-  select(-admin_level_2) %>%
-  select(-c("day", "date")) %>%
+  dplyr::select(-admin_level_2) %>%
+  dplyr::select(-c("day", "date")) %>%
   group_by(country, admin_level_1, year, month) %>%
   summarise_all(mean, na.rm = TRUE) %>% ungroup() %>%
   mutate(date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
@@ -761,42 +772,30 @@ xmob_long <- xmob %>%
 
 wpop <- xvul0 %>% 
   filter(date == "2020-01-01" & !(admin_level_2 == "") & !(admin_level_1 == "")) %>%
-  select(country, admin_level_1, admin_level_2, date, year, square_km, starts_with("male"), starts_with("female")) %>%
-  mutate(total_worldpop = rowSums(select(., starts_with("male"), starts_with("female")), na.rm = TRUE))
+  dplyr::select(country, admin_level_1, admin_level_2, date, year, square_km, starts_with("male"), starts_with("female")) %>%
+  mutate(total_worldpop = rowSums(dplyr::select(., starts_with("male"), starts_with("female")), na.rm = TRUE))
 
 wpop_adm1_custom <- wpop %>% 
-  select(-c(date, admin_level_2)) %>%
+  dplyr::select(-c(date, admin_level_2)) %>%
   group_by(country, admin_level_1, year) %>%
   summarise_all(.funs =  list(~sum(., na.rm = TRUE))) %>%
   ungroup() %>%
-  mutate(pop_perc_65_years_and_over = rowSums(select(., matches("65_to_69|70_to_74|75_to_79|80_years")))/total_worldpop,
-         pop_perc_45_to_64_years = rowSums(select(., matches("45_to_49|50_to_54|55_to_59|60_to_64")))/total_worldpop,
-         pop_perc_25_to_44_years = rowSums(select(., matches("25_to_29|30_to_34|35_t0_39|40_to_44")))/total_worldpop,
-         pop_perc_15_to_24_years = rowSums(select(., matches("15_to_19|20_to_24")))/total_worldpop,
-         pop_perc_5_to_14_years = rowSums(select(., matches("5_to_9|10_to_14")))/total_worldpop,
-         pop_perc_0_to_4_years = rowSums(select(., matches("0_to_12|1_to_4")))/total_worldpop) %>%
-  select(country, admin_level_1, year,starts_with("pop_perc_")) %>%
+  mutate(pop_perc_65_years_and_over = rowSums(dplyr::select(., matches("65_to_69|70_to_74|75_to_79|80_years")))/total_worldpop,
+         pop_perc_45_to_64_years = rowSums(dplyr::select(., matches("45_to_49|50_to_54|55_to_59|60_to_64")))/total_worldpop,
+         pop_perc_25_to_44_years = rowSums(dplyr::select(., matches("25_to_29|30_to_34|35_t0_39|40_to_44")))/total_worldpop,
+         pop_perc_15_to_24_years = rowSums(dplyr::select(., matches("15_to_19|20_to_24")))/total_worldpop,
+         pop_perc_5_to_14_years = rowSums(dplyr::select(., matches("5_to_9|10_to_14")))/total_worldpop,
+         pop_perc_0_to_4_years = rowSums(dplyr::select(., matches("0_to_12|1_to_4")))/total_worldpop) %>%
+  dplyr::select(country, admin_level_1, year,starts_with("pop_perc_")) %>%
   mutate(date = "2020-01-01") %>%
   mutate(date = as.Date(as.character(date)))
 
-# malaria data - admin level 1
-xvul1 <- xvul0 %>% 
-  filter(date >= "2020-01-01" & !(admin_level_1 == "") & !(admin_level_2 == "")) %>%
-  select(country, admin_level_1, date, malaria_deaths, confirmed_cases,
-         suspected_cases, health_workers, new_consultation_all_cause) %>%
-  group_by(country, admin_level_1, date) %>%
-  summarise_all(.funs =  list(~sum(., na.rm = TRUE))) %>%
-  ungroup() %>%
-  mutate(date = as.Date(as.character(date)))
-
-
-colnames(xvul1)[4:8] <- paste("mal", colnames(xvul1)[4:8], sep = "_") # adding prefix to colnames
-
 # mobility data
-xmob_custom <- xvul0 %>% select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", ends_with("baseline"))) %>%
+xmob_custom <- xvul0 %>% 
+  dplyr::select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", ends_with("baseline"))) %>%
   filter(year==2020 & (admin_level_2 == "") & (!is.na(day)) ) %>% # adding filter for 2020
-  select(-admin_level_2) %>%
-  select(-c("day", "date")) %>%
+  dplyr::select(-admin_level_2) %>%
+  dplyr::select(-c("day", "date")) %>%
   group_by(country, admin_level_1, year, month) %>%
   summarise_all(mean, na.rm = TRUE) %>% ungroup() %>%
   mutate(date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
@@ -807,10 +806,11 @@ xmob_custom <- xvul0 %>% select(c("country", "admin_level_1", "admin_level_2", "
 
 colnames(xmob_custom)[6:11] <- paste("mob", colnames(xmob_custom)[6:11], sep = "_")
 
-# handwashing data - missing for all of 2020
-xwash_custom <- xvul0 %>% select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", contains("handwashing"))) %>%
+# handwashing data 
+xwash_custom <- xvul0 %>% 
+  dplyr::select(c("country", "admin_level_1", "admin_level_2", "date", "year", "month", "day", contains("handwashing"))) %>%
   filter( (admin_level_2 == "") & (!is.na(day)) ) %>% 
-  select(-c(admin_level_2, day, date)) %>%
+  dplyr::select(-c(admin_level_2, day, date)) %>%
   group_by(country, admin_level_1, year, month) %>%
   summarise_all(mean, na.rm = TRUE) %>% ungroup() %>%
   mutate(date = as.Date(paste(year, "-", month, "-01", sep = ""))) %>%
@@ -822,16 +822,15 @@ xwash_custom[,-c(1:4)] <- data.frame(lapply(xwash_custom[,-c(1:4)], function(x) 
 xwash_custom <- data.frame(lapply(xwash_custom, function(x) {gsub("NaN", NA, x)})) # setting NaNs to NA
 
 mob_wash <- merge(xmob_custom, xwash_custom, by=c('country', 'admin_level_1', 'date', 'year', 'month'), all=T) 
-mal_mob_wash <- merge(xvul1, mob_wash, by=c('country', 'admin_level_1', 'date'), all=T)  # full join
 
 # updating to year month cols
-mal_mob_wash <- mal_mob_wash %>%
+mob_wash <- mob_wash %>%
   mutate(month = substr(date, start=6, stop=7),
          year = substr(date, start=1, stop=4),
          month = str_remove(month, "^0+")) 
 
 # add in pop data - this should now have all data loaded
-custom0 <- merge(mal_mob_wash, wpop_adm1_custom, by=c('country', 'admin_level_1', 'year','date'), all=T) 
+custom0 <- merge(mob_wash, wpop_adm1_custom, by=c('country', 'admin_level_1', 'year','date'), all=T) 
 custom0 <- custom0 %>%
   filter(admin_level_1 != "")
 
@@ -845,4 +844,59 @@ custom0_long <- custom0 %>%
   mutate(value = ifelse(grepl("NaN", value), NA, value))
 
 custom0_long$date <- as.Date(custom0_long$date)
+custom0_long$year <- as.numeric(custom0_long$year)
 
+
+# malaria variables 
+mal_custom <- xprov %>%
+  filter(count_type == 'value_rate' & variable %in% c("health_workers", "allcause_cases")) %>%
+  dplyr::select(-c("count_type", ends_with("group"), starts_with("info"))) %>%
+  mutate(variable = gsub("allcause_cases", "new_consultation_all_cause", variable))
+
+# creating 2020 & 2018/19 malaria dfs
+mal_custom_20 <- mal_custom %>%
+  filter(year == 2020) %>%
+  group_by(country, admin_level_1, year, variable) %>%
+  summarise_at(., vars(-c("date", "month")),
+               .funs = list( ~ifelse(all(is.na(.)), NA, sum(., na.rm = TRUE)))) %>%
+  mutate(variable = paste0("mal_", variable, "_20")) %>%
+  ungroup()
+
+# check to see where data is missing - decides what variables are in ctry_18
+# mal_custom_cont <- mal_custom %>%
+#   filter(year %in% c(2018, 2019)) %>%
+#   mutate(hw_18 = ifelse(!is.na(value) & variable == "health_workers" & year == 2018,1,0)) %>%
+#   mutate(hw_19 = ifelse(!is.na(value) & variable == "health_workers" & year == 2019,1,0)) %>%
+#   mutate(ac_18 = ifelse(!is.na(value) & variable == "allcause_cases" & year == 2018,1,0)) %>%
+#   mutate(ac_19 = ifelse(!is.na(value) & variable == "allcause_cases" & year == 2019,1,0)) %>%
+#   group_by(country, admin_level_1, variable) %>%
+#   summarise_at(., vars(-c("date", "month", "year")),
+#                .funs = list( ~ifelse(all(is.na(.)), NA, sum(., na.rm = TRUE)))) # check to see where data is missing
+
+custom_mal_ctry_18 <- c('Angola', 'Burkina Faso', 'Malawi', 'Mali','Niger') # we can add countries here as we need
+
+mal_custom_cont <- mal_custom %>%
+  filter(year %in% c(2018, 2019)) %>%
+  group_by(country, admin_level_1, year, variable) %>%
+  mutate(cont_obs = ifelse((country %nin% custom_mal_ctry_18 & year == 2019) | # rework to add countries easily
+                             (country %in% custom_mal_ctry_18 & year == 2018), 1, 0)) %>%
+  filter(cont_obs == 1) %>%
+  mutate(cont_obs = ifelse(is.na(value), 0, 1)) %>% # setting cont_obs to now represent the number of non-null obs
+  summarise_at(., vars(-c("date", "month")),
+               .funs = list( ~ifelse(all(is.na(.)), NA, sum(., na.rm = TRUE)))) %>%
+  mutate(value = value / cont_obs,
+         variable = paste0("mal_", variable, "_cont")) %>%
+  dplyr::select(-cont_obs) %>%
+  ungroup()
+
+# combine 2020 & 2018/19 dfs  
+custom0_mal_long <- rbind(mal_custom_20, mal_custom_cont)
+# add date column
+custom0_mal_long <- custom0_mal_long %>%
+  mutate(date = as.Date(paste0(year, "-01-01")))
+
+# create combined custom scores df
+custom0_long_comb <- bind_rows(custom0_long, custom0_mal_long) # we *should* be able to just plug this into the custom0_long
+
+custom0_long_comb <- custom0_long_comb %>% # filling in month NAs
+  mutate(month = substr(date, 6,7))

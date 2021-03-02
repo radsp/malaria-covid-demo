@@ -9,14 +9,14 @@ output:
 </b>
 <br/>
 
-Population-level and health systems data is a powerful resource for understanding how viruses are spreading and which communities are at risk. However, interpreting that information is challenging.  Health authorities from some of the PMI focus countries have already developed their own dashboards, the **COVID-19 and Malaria Monitoring and Vulnerability Tool in M-DIVE** offers a means for PMI and national malaria control programs to visualize existing data in an integrated way to inform high level COVID-19 and malaria related **questions** such as:
+Population-level and health systems data is a powerful resource for understanding how viruses are spreading and which communities are at risk. However, interpreting this data is challenging, especially for those who do not have access to information on country-specific contextual factors. Noting that health authorities from some of the PMI focus countries have already developed their own dashboards, the **COVID-19 and Malaria Tracking and Vulnerability Tool in M-DIVE** offers a means for PMI and national malaria control programs to visualize existing data in an integrated way to inform high level COVID-19 and malaria related **questions** such as:
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*To what extent are changes to treatment-seeking patterns or intervention campaigns (or both) are having an effect on malaria burden?*
 
 
 ## Objective
 <br/>
-M-DIVE’s COVID-19 and Malaria Monitoring and Vulnerability Tool provides information on malaria and COVID-19 indicators - including observed and forecast data - intended to support the following objectives:
+M-DIVE’s COVID-19 and Malaria Tracking and Vulnerability Tool provides information on malaria and COVID-19 indicators - including observed and forecast data - intended to support the following objectives:
 
 1. Lay a foundation for tracking the impact of COVID-19 on key malaria related indicators
 2. Identify subnational geographic areas that are more vulnerable to COVID transmission and health system overload

@@ -7,6 +7,7 @@ tab_malaria <-
   navbarMenu("Malaria Impact", 
              tabPanel("Snapshot",
                       useShinyjs(),
+                      useShinyalert(),
                       br(),
                       sidebarLayout(
                         sidebarPanel(width = 2, 
@@ -30,17 +31,22 @@ tab_malaria <-
                                                         label = HTML("Indicator Unit:"), choices = c("Cases per 1K people" = "value_rate", "Cases" = "value"),
                                                         inline = FALSE, status = "default"),
                                      hr(),
-                                     h5(HTML("Baseline Period for Comparison")),
+                                     h5(HTML("Comparison period")),
                                      br(),
-                                     selectInput(inputId = "in_yr0_snap", label = "Select Year or Historical Mean:", choices = c(rev(2016:2019), "Historical mean"), 
-                                                 selected = "2019"),
-                                     fluidRow(column(6,
-                                                     selectInput(inputId = "in_yr0m0_snap", label = "Start Month:", choices = month.abb, selected = "Jan")),
-                                              column(6,
-                                                     selectInput(inputId = "in_yr0mf_snap", label = "End Month:", choices = month.abb, selected = "Mar")))
+                                     uiOutput("add_datepicker_pand_snap"),
+                                     prettyRadioButtons(inputId = "in_ltm_or_yr_snap", label = HTML("Select baseline period to compare pandemic period with:"),
+                                                        #choices = c("Historical Mean", "Select a date range"), 
+                                                        choices = c("Select a date range"),
+                                                        selected = "Select a date range"),
+                                     uiOutput("add_datepicker_comp_snap"),
+                                     HTML("*Number of months must be the same as that of in the selected pandemic period."),
+                                     br(),
+                                     hr(),
+                                     actionButton(inputId = "goplot_snap", label = "Update plots", class = "btn-primary")
+                                     
                         ),
                         mainPanel(width = 10, setBackgroundColor("white"),
-                          uiOutput(outputId = "out_snapshot_panel")
+                                  uiOutput(outputId = "out_snapshot_panel")
                         ))),
              
              tabPanel("Changes In Indicator",
@@ -49,8 +55,8 @@ tab_malaria <-
                       sidebarLayout(
                         sidebarPanel(width = 2,
                                      selectInput(inputId = "in_aggr_pcnt", label = "Spatial Aggregation", 
-                                                        choices = c("National Level" = "admin0", "Sub-National Level" = "admin1"),
-                                                        selected = "admin0"),
+                                                 choices = c("National Level" = "admin0", "Sub-National Level" = "admin1"),
+                                                 selected = "admin0"),
                                      selectInput(inputId = "in_region_pcnt", label = "Region/Country", 
                                                  choices = c("All Countries", "Northern Hemisphere", 
                                                              "Southern Hemisphere", "Western Africa", 
@@ -72,13 +78,15 @@ tab_malaria <-
                                                         label = HTML("Indicator unit:"), choices = c("Cases per 1,000 population*" = "value_rate", "Cases" = "value"),
                                                         inline = FALSE, status = "default", selected = "value_rate"),
                                      prettyCheckboxGroup(inputId = "in_overlay_pcnt", label = HTML("Include:"),
-                                                        choices = c("Reporting Rate" = "reports_rate", "Mobility" = "mob_"), inline = FALSE,
-                                                        status = "default"),
+                                                         choices = c("Reporting Rate" = "reports_rate", "Mobility" = "mob_"), inline = FALSE,
+                                                         status = "default", selected = "reports_rate"),
                                      hr(),
-                                     h5(HTML("Baseline year for comparison")),
+                                     h5(HTML("Comparison period")),
                                      br(),
-                                     selectInput(inputId = "in_yr0_pcnt", label = "Select year to compare:", choices = c(rev(2016:2019), "Historical Mean"), 
-                                                 selected = "2019")
+                                     selectInput(inputId = "in_yr0_pcnt", label = "Select baseline year to compare pandemic period with:", choices = c(rev(2016:2020)), #"Historical Mean"), 
+                                                 selected = "2019"),
+                                     hr(),
+                                     actionButton(inputId = "goplot_pcnt", label = "Update plots", class = "btn-primary")
                         ),
                         mainPanel(
                           fluidRow(style = 'padding-left:10px;',
@@ -139,23 +147,23 @@ tab_malaria <-
                                                                 selectInput(inputId = "in_yr0mf_ts", label = "End Month:", choices = month.abb, selected = "Mar")))
                                    ),
                                    mainPanel( setBackgroundColor("white"),
-                                     fluidRow(
-                                         column(10, style = 'padding-left:10px;', p(HTML("KEY ANALYTICAL QUESTIONS:")),
-                                                tags$ol(
-                                                  tags$li("How do malaria indicators reported in 2020 - during COVID-19 pandemic - appear to compare to previous years and/or historical mean?"),
-                                                  tags$li("By how much do the indicators in 2020 exceed or below the level of previous years?"),
-                                                  tags$li("Do any changes in malaria indicators coincide with COVID19 dynamics?"),
-                                                  tags$li("What is the forecasted COVID-19 trajectory and how does the timing potentially coincide with malaria season?")))
-                                     ),
-                                     br(),
-                                     fluidRow(style = 'padding-left:10px;', plotlyOutput("out_plot_ts", width = "auto")))
+                                              fluidRow(
+                                                column(10, style = 'padding-left:10px;', p(HTML("KEY ANALYTICAL QUESTIONS:")),
+                                                       tags$ol(
+                                                         tags$li("How do malaria indicators reported in 2020 - during COVID-19 pandemic - appear to compare to previous years and/or historical mean?"),
+                                                         tags$li("By how much do the indicators in 2020 exceed or below the level of previous years?"),
+                                                         tags$li("Do any changes in malaria indicators coincide with COVID19 dynamics?"),
+                                                         tags$li("What is the forecasted COVID-19 trajectory and how does the timing potentially coincide with malaria season?")))
+                                              ),
+                                              br(),
+                                              fluidRow(style = 'padding-left:10px;', plotlyOutput("out_plot_ts", width = "auto")))
                                  )
                                  
                                  
-
-                        
+                                 
+                                 
                       )
-               
+                      
              ),
              
              
@@ -225,7 +233,7 @@ tab_malaria <-
                       
              ) # End of tab Panel - RF National
              
-             )
+  )
 
 
 
@@ -245,62 +253,62 @@ tab_covid <- navbarMenu("COVID-19 Vulnerability",
                                    #            tags$li("How does the individual indicator vary within the country?")
                                    #          )),
                                    #   column(2)),
-                                    # ),
+                                   # ),
                                    br(),
+                                   
+                                   sidebarLayout(
+                                     sidebarPanel(width = 2,
+                                                  selectInput(inputId = "in_ctry_covid_inctry", label = "Country:",
+                                                              choices = c('Angola','Benin','Burkina Faso','Cambodia','Cameroon',
+                                                                          "Cote D'Ivoire",'DR Congo','Ethiopia',
+                                                                          'Ghana','Guinea','Liberia','Madagascar','Malawi',
+                                                                          'Mali','Mozambique','Myanmar','Niger','Nigeria',
+                                                                          'Rwanda','Senegal','Sierra Leone','Tanzania (Mainland)',
+                                                                          'Tanzania (Zanzibar)','Thailand','Uganda','Zambia','Zimbabwe')),
+                                                  # selectInput(inputId = "in_adminlevel_inctry", label = "Administrative Level:",
+                                                  #             choices = c("Level 1", "Level 2"),
+                                                  #             selected = "Level 1"),
+                                                  checkboxGroupInput(inputId = "in_indicator_inctry_custom", 
+                                                                     label = "Select indicators to include:",
+                                                                     choices = c("Population: 65 yrs and older (%)"="pop_perc_65_years_and_over",
+                                                                                 "Population: 45 - 64 yrs (%)"="pop_perc_45_to_64_years"  , 
+                                                                                 "Population: 25 - 44 yrs"="pop_perc_25_to_44_years",
+                                                                                 "Population: 15 - 24 years (%)"="pop_perc_15_to_24_years",
+                                                                                 "Population: 5 - 14 yrs (%)"="pop_perc_5_to_14_years",
+                                                                                 "Population 0 - 4 yrs (%)"="pop_perc_0_to_4_years",
+                                                                                 "Mobility: Grocery & Pharmacy"="mob_grocery_and_pharmacy",
+                                                                                 "Mobility: Parks"="mob_parks",
+                                                                                 "Mobility: Residential"="mob_residential",
+                                                                                 "Mobility: Retail & Recreation"="mob_retail_and_recreation",
+                                                                                 "Mobility: Transit Stations"="mob_transit_stations",
+                                                                                 "Mobility: Workplaces"="mob_workplaces",
+                                                                                 "Handwashing: Population living in households with access to soap and water (%)"="population_living_in_households_with_a_basic_handwashing_facility_with_soap_and_water_available",
+                                                                                 "Handwashing: Population living in households where a place for handwashing was observed (%)"="population_with_a_place_for_handwashing_was_observed"
+                                                                                 # "Malaria: Number of health workers"="mal_health_workers",
+                                                                                 # "Malaria: Annual new consultations (fever)"="mal_new_consultation_all_cause" # temporarily removing malaria indicators 
+                                                                     ),
+                                                                     selected = "pop_perc_65_years_and_over"),
+                                                  
+                                                  uiOutput(outputId = "out_filter_l3_inctry")
+                                     ), 
                                      
-                                     sidebarLayout(
-                                       sidebarPanel(width = 2,
-                                                    selectInput(inputId = "in_ctry_covid_inctry", label = "Country:",
-                                                                choices = c('Angola','Benin','Burkina Faso','Cambodia','Cameroon',
-                                                                            "Cote D'Ivoire",'DR Congo','Ethiopia',
-                                                                            'Ghana','Guinea','Liberia','Madagascar','Malawi',
-                                                                            'Mali','Mozambique','Myanmar','Niger','Nigeria',
-                                                                            'Rwanda','Senegal','Sierra Leone','Tanzania (Mainland)',
-                                                                            'Tanzania (Zanzibar)','Thailand','Uganda','Zambia','Zimbabwe')),
-                                                    # selectInput(inputId = "in_adminlevel_inctry", label = "Administrative Level:",
-                                                    #             choices = c("Level 1", "Level 2"),
-                                                    #             selected = "Level 1"),
-                                                    checkboxGroupInput(inputId = "in_indicator_inctry_custom", 
-                                                                       label = "Select indicators to include:",
-                                                                       choices = c("Population: 65 yrs and older (%)"="pop_perc_65_years_and_over",
-                                                                                   "Population: 45 - 64 yrs (%)"="pop_perc_45_to_64_years"  , 
-                                                                                   "Population: 25 - 44 yrs"="pop_perc_25_to_44_years",
-                                                                                   "Population: 15 - 24 years (%)"="pop_perc_15_to_24_years",
-                                                                                   "Population: 5 - 14 yrs (%)"="pop_perc_5_to_14_years",
-                                                                                   "Population 0 - 4 yrs (%)"="pop_perc_0_to_4_years",
-                                                                                   "Mobility: Grocery & Pharmacy"="mob_grocery_and_pharmacy",
-                                                                                   "Mobility: Parks"="mob_parks",
-                                                                                   "Mobility: Residential"="mob_residential",
-                                                                                   "Mobility: Retail & Recreation"="mob_retail_and_recreation",
-                                                                                   "Mobility: Transit Stations"="mob_transit_stations",
-                                                                                   "Mobility: Workplaces"="mob_workplaces",
-                                                                                   "Handwashing: Population living in households with access to soap and water (%)"="population_living_in_households_with_a_basic_handwashing_facility_with_soap_and_water_available",
-                                                                                   "Handwashing: Population living in households where a place for handwashing was observed (%)"="population_with_a_place_for_handwashing_was_observed"
-                                                                                   # "Malaria: Number of health workers"="mal_health_workers",
-                                                                                   # "Malaria: Annual new consultations (fever)"="mal_new_consultation_all_cause" # temporarily removing malaria indicators 
-                                                                       ),
-                                                                       selected = "pop_perc_65_years_and_over"),
-                                                    
-                                                    uiOutput(outputId = "out_filter_l3_inctry")
-                                       ), 
-                                       
-                                       ## Main panel -----------------------------------------------------------------------------
-                                       mainPanel(
-                                         fluidRow(
-                                           h2("Customizable COVID-19 Vulnerability Rank Map")), br(),
-                                         fluidRow(
+                                     ## Main panel -----------------------------------------------------------------------------
+                                     mainPanel(
+                                       fluidRow(
+                                         h2("Customizable COVID-19 Vulnerability Rank Map")), br(),
+                                       fluidRow(
                                          column(8, p(HTML("KEY ANALYTICAL QUESTIONS:")),
-                                                         tags$ol(
-                                                           tags$li("Which geographic area is most vulnerable to COVID-19 based on selected indicators?"),
-                                                           tags$li("How does the individual indicator vary within the country?")
-                                                         ))),
-                                         br(),
-                                         # HTML("<h4><b>COVID-19 Vulnerability Rank Map</b></h4>
-                                         #                 <h6>Currently a placeholder - risk ranking here obtained from Cooper/Smith as an example</h6>"),
-                                         fluidRow(
-                                             p("The custom vulnerability scores are calculated following the", (a("Surgo Foundation's COVID-19 
+                                                tags$ol(
+                                                  tags$li("Which geographic area is most vulnerable to COVID-19 based on selected indicators?"),
+                                                  tags$li("How does the individual indicator vary within the country?")
+                                                ))),
+                                       br(),
+                                       # HTML("<h4><b>COVID-19 Vulnerability Rank Map</b></h4>
+                                       #                 <h6>Currently a placeholder - risk ranking here obtained from Cooper/Smith as an example</h6>"),
+                                       fluidRow(
+                                         p("The custom vulnerability scores are calculated following the", (a("Surgo Foundation's COVID-19 
                                            Community Vulnerability Index methodology", href="https://covid-static-assets.s3.amazonaws.com/Africa+CCVI+methodology.pdf")),
-                                               ", using a stepwise ranking procedure. First, indicator values for the most recently available data are
+                                           ", using a stepwise ranking procedure. First, indicator values for the most recently available data are
                                            grouped by country and converted into percentiles. These indicators are then aggregated to themes 
                                            (i.e. mobility indicators are aggregated to the mobility theme, handwashing data indicators 
                                            are aggregated to the handwashing theme, etc.). The indicators 
@@ -313,34 +321,34 @@ tab_covid <- navbarMenu("COVID-19 Vulnerability",
                                            change, whereas the Surgo scores are static since there is no option for the user to select 
                                            indicators. The risk factors included for the custom scores are population age structure, 
                                            mobility, and hand washing. We obtained population age structure data from ", 
-                                               (a("World Population", href="https://www.worldpop.org/geodata/listing?id=65")),  
-                                               ", mobility data from ", (a("Google COVID-19 Community Mobility Reports", href="https://www.google.com/covid19/mobility/")), 
-                                               ", and hand washing data from the ", 
-                                               (a("Demographic Health Survey.", href="http://api.dhsprogram.com/#/index.html")), br()),
-                                             h6(tags$strong("Click on the plot below to view the scores for your selected indicator(s) in
+                                           (a("World Population", href="https://www.worldpop.org/geodata/listing?id=65")),  
+                                           ", mobility data from ", (a("Google COVID-19 Community Mobility Reports", href="https://www.google.com/covid19/mobility/")), 
+                                           ", and hand washing data from the ", 
+                                           (a("Demographic Health Survey.", href="http://api.dhsprogram.com/#/index.html")), br()),
+                                         h6(tags$strong("Click on the plot below to view the scores for your selected indicator(s) in
                                             each region.")),
-                                           
-                                        leafletOutput("custom_scores_inctry")
-                                         ),
-                                         hr(),
-                                         h4(HTML("<b>Indicators</b>
+                                         
+                                         leafletOutput("custom_scores_inctry")
+                                       ),
+                                       hr(),
+                                       h4(HTML("<b>Indicators</b>
                                                  <h6>Currently a placeholder - risk ranking here obtained from Cooper/Smith as an example</h6>")),
-                                         fluidRow(
-                                           box( title = h4("> 60 yrs population density"), collapsible = TRUE, leafletOutput("out_pop60_inctry") ),
-                                           box( title = h4("40 - 60 yrs population density"), collapsible = TRUE, leafletOutput("out_pop40_inctry")),
-                                           box( title = h4("Mobility"), collapsible = TRUE, leafletOutput("out_mobile_inctry") ),
-                                           box( title = h4("Handwashing"), collapsible = TRUE, leafletOutput("out_wash_inctry") )
-                                         )
+                                       fluidRow(
+                                         box( title = h4("> 60 yrs population density"), collapsible = TRUE, leafletOutput("out_pop60_inctry") ),
+                                         box( title = h4("40 - 60 yrs population density"), collapsible = TRUE, leafletOutput("out_pop40_inctry")),
+                                         box( title = h4("Mobility"), collapsible = TRUE, leafletOutput("out_mobile_inctry") ),
+                                         box( title = h4("Handwashing"), collapsible = TRUE, leafletOutput("out_wash_inctry") )
                                        )
-                                       
                                      )
                                      
                                    )
                                    
+                                 )
                                  
                                  
                                  
-                                 ), 
+                                 
+                        ), 
                         
                         # tabPanel("General Calculator",
                         #          fluidPage(
@@ -373,12 +381,12 @@ tab_covid <- navbarMenu("COVID-19 Vulnerability",
                         #          )
                         # 
                         #          ),
-
+                        
                         tabPanel("Other Sources",
                                  fluidPage(
                                    sidebarLayout(
                                      sidebarPanel(width = 2,
-
+                                                  
                                                   selectInput(inputId = "in_sources_osrc", label = "Select source:",
                                                               choices = c("Cooper/Smith", "Surgo Foundation"),
                                                               selected = "Surgo Foundation"),
@@ -387,7 +395,7 @@ tab_covid <- navbarMenu("COVID-19 Vulnerability",
                                                               choices = c("Angola", "Benin", "Burkina Faso", "Cameroon","DR Congo", 
                                                                           "Ethiopia", "Guinea", "Ghana", "Liberia", "Mozambique", "Niger", 
                                                                           "Nigeria", "Rwanda", "Senegal","Uganda","Zambia", "Zimbabwe")
-                                                              ),
+                                                  ),
                                                   uiOutput("out_filter_l2_osrc"),
                                                   # conditionalPanel(
                                                   #   condition = "input.in_sources_osrc == 'Custom Scores'",
@@ -415,25 +423,25 @@ tab_covid <- navbarMenu("COVID-19 Vulnerability",
                                                     condition = "input.in_sources_osrc == 'Surgo Foundation'",
                                                     uiOutput("out_surgo_bt_wi")
                                                   )
-                                                  ),
+                                     ),
                                      mainPanel(
                                        conditionalPanel(
                                          condition = "input.in_sources_osrc == 'Surgo Foundation'",
-                                       h2("Surgo COVID-19 Vulnerability Rank Map"),
-                                       p("Scores within the Surgo Foundation portion of this page are from the CCOVID-19
+                                         h2("Surgo COVID-19 Vulnerability Rank Map"),
+                                         p("Scores within the Surgo Foundation portion of this page are from the CCOVID-19
                                          Community Vulnerability Index (CCVI), which the Surgo Foundation created to inform 
                                          coronavirus planning and response efforts. These scores are percentiles, ranging from 0 to 1,
                                          representing the following seven themes: socioeconomic status, population density,
                                          access to housing & transportation, epidemiological factors, health system factors,
                                          fragility, and age.", br()),
-                                       tags$i("More information regarding the Cooper/Smith scores will be added as their data
+                                         tags$i("More information regarding the Cooper/Smith scores will be added as their data
                                             is incorporated into this app. "), br()),
-                                         h6(tags$strong("Click on the plot below to view information on all of the CCVI scores for
+                                       h6(tags$strong("Click on the plot below to view information on all of the CCVI scores for
                                             each region.")), 
-                                     conditionalPanel(
-                                       condition = "input.in_sources_osrc == 'Cooper/Smith'",
-                                       h2("Cooper/Smith COVID-19 Vulnerability Rank Map"),
-                                      tags$i("Cooper/Smith Scores are not currently available within the Malaria-COVID App. ")),
+                                       conditionalPanel(
+                                         condition = "input.in_sources_osrc == 'Cooper/Smith'",
+                                         h2("Cooper/Smith COVID-19 Vulnerability Rank Map"),
+                                         tags$i("Cooper/Smith Scores are not currently available within the Malaria-COVID App. ")),
                                        # conditionalPanel(
                                        #   condition = "input.in_sources_osrc == 'Custom Scores'",
                                        #   h2("Customizable COVID-19 Vulnerability Rank Map"),
@@ -463,8 +471,8 @@ tab_covid <- navbarMenu("COVID-19 Vulnerability",
                                      
                                    )
                                  )
-                                 )
                         )
+)
 
 
 
@@ -475,7 +483,7 @@ tab_covid <- navbarMenu("COVID-19 Vulnerability",
 
 
 tab_info <- tabPanel("Info",
-
+                     
                      navlistPanel(well = FALSE, widths = c(2, 10),
                                   tabPanel("Getting Started",
                                            tags$head(tags$style('.card {
@@ -505,8 +513,9 @@ tab_info <- tabPanel("Info",
                                              fluidRow(
                                                column(width = 10,
                                                       HTML("<p>Population-level and health systems data is a powerful resource for understanding how viruses are spreading and which communities are at risk. 
-                                                            However, interpreting that information is challenging.  Health authorities from some of the PMI focus countries have already developed their own 
-                                                            dashboards, the <b>COVID-19 and Malaria Monitoring and Vulnerability Tool in M-DIVE</b> offers a means for PMI and national malaria control programs to 
+                                                            However, interpreting this data can be challenging, especially for those who do not have access to information on 
+                                                            country-specific contextual factors. Noting that health authorities from some of the PMI focus countries have already developed their own 
+                                                            dashboards, the <b>COVID-19 and Malaria Tracking and Vulnerability Tool in M-DIVE</b> offers a means for PMI and national malaria control programs to 
                                                             visualize existing data in an integrated way to inform high level COVID-19 and malaria related <b>questions</b> such as:</p>
                                                             <div style='text-indent: 1em;'><i>To what extent are changes to treatment-seeking patterns or 
                                                             intervention campaigns (or both) are having an effect on malaria burden?</i></div>
@@ -587,34 +596,34 @@ tab_info <- tabPanel("Info",
                                   tabPanel("Methods",
                                            fluidPage(style = "margin-left:40px;", includeMarkdown("info_files/methods.Rmd")))
                      )
-                         
-                       
-                     )
-                       
+                     
+                     
+)
 
-                    
-            
+
+
+
 
 
 # --------------------------------------------------------------------------------------------------------------------------------
 # Assemble the UI
 #--------------------------------------------------------------------------------------------------------------------------------
 ui <- navbarPage(title = HTML("COVID-19 and Malaria Tracking and Vulnerability Tool &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"),
-                  id = "top_page", 
-                  theme = "bootstrap_simplex.css",
+                 id = "top_page", 
+                 theme = "bootstrap_simplex.css",
                  # tags$head(includeCSS("www/bootstrap_simplex.css")),
-                   
-                   # PANEL 1 - INFO
-                   tab_info,
-                   
-                   # PANEL 2
-                   tab_malaria,
-                   
-                   # PANEL 3 - COVID
-                   tab_covid #,
-                   
-                   # # PANEL 4 - CLIMATE(?)
-                   # tab_rf
-                   
-                   
+                 
+                 # PANEL 1 - INFO
+                 tab_info,
+                 
+                 # PANEL 2
+                 tab_malaria,
+                 
+                 # PANEL 3 - COVID
+                 tab_covid #,
+                 
+                 # # PANEL 4 - CLIMATE(?)
+                 # tab_rf
+                 
+                 
 )
